@@ -1,0 +1,127 @@
+# dev-ops local stack: Postgres 16, silo (attachments) and the API.
+#
+# The compose project name is REQUIRED and never derived. A directory-derived name makes every checkout called
+# `server` one project, so an `up` or `down -v` in one checkout would adopt or
+# delete another's containers and its postgres volume. Give the name:
+#
+#   DEV_OPS_PROJECT=dev-ops in .env   - ONLY a shared checkout
+#   docker compose -p <name> ...      - a worktree, e.g. -p dev-ops-mytask
+#   COMPOSE_PROJECT_NAME=<name>       - CI (dev-ops-ci) and scripts
+#
+# Host ports default to 8090 (app), 5433 (postgres) and 9100 (silo S3 API).
+# Override them with DEV_OPS_APP_PORT / DEV_OPS_PG_PORT / DEV_OPS_S3_PORT when
+# they are taken: another service on your host may already use 8090.
+#
+# Every port is published on 127.0.0.1 only. This stack is for
+# local development and CI, whose clients (tests, the web dev server, curl)
+# all run on the same host. Postgres has a fixed dev password, and the app on
+# a local stack logs login codes, so neither may be reachable from the LAN.
+# Production does not use this file: it is deploy/docker-compose.yml, started
+# by deploy/deploy.sh (docs/deploy.md).
+name: "${DEV_OPS_PROJECT:-${COMPOSE_PROJECT_NAME:?no compose project name. Shared checkout - add DEV_OPS_PROJECT=dev-ops to server/.env. Any other checkout - pass -p <name>, e.g. -p dev-ops-mytask. See AGENTS.md}}"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: devops
+      POSTGRES_DB: devops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${DEV_OPS_PG_PORT:-5433}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Attachments. silo (pgsty/silo) is the community MinIO fork
+  # that every environment runs. Pinned to a release
+  # tag, never `latest`. Its root user and password are PUBLIC
+  # local-dev defaults, like the postgres password: the port is on
+  # 127.0.0.1 only. A real deployment sets its own S3_* (CapRover env).
+  # The app creates the bucket on a local/test boot.
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY:-devops}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY:-devops-local-s3-secret}
+    volumes:
+      - silo_data:/data
+    ports:
+      - "127.0.0.1:${DEV_OPS_S3_PORT:-9100}:9000"
+    healthcheck:
+      # silo's own probe (GET /minio/health/ready). No credentials needed.
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgres://devops:devops@postgres:5432/devops?sslmode=disable
+      PORT: "8080"
+      LOG_ENV: ${LOG_ENV:-local}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8090}
+      # Web login (T6a). With no Postmark token on a local stack, codes are
+      # written to the app log; AUTH_FIXED_OTP makes every code that value.
+      POSTMARK_SERVER_TOKEN: ${POSTMARK_SERVER_TOKEN:-}
+      POSTMARK_FROM: ${POSTMARK_FROM:-}
+      AUTH_FIXED_OTP: ${AUTH_FIXED_OTP:-}
+      # HMAC key of stored login codes; required whenever login is on. This
+      # default is a PUBLIC dev value for the local stack only; any real
+      # deployment sets its own random secret (CapRover env, never a file).
+      # NEVER use this public default with a LOG_ENV other than local or test.
+      AUTH_OTP_PEPPER: ${AUTH_OTP_PEPPER:-local-dev-otp-pepper-not-a-secret-00000000}
+      # Seals the mail secrets of the platform settings. A PUBLIC
+      # dev default (hex of "launchpad-local-dev-settings-key"); the server
+      # refuses it with a LOG_ENV other than local or test.
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:-6c61756e63687061642d6c6f63616c2d6465762d73657474696e67732d6b6579}
+      # Seals the secrets of backup destinations and the backup signing key
+      # (LAUN-68, decisions-T16 #12). A PUBLIC dev default (hex of
+      # "launchpad-local-dev-backup-key-0"); the server refuses it with a
+      # LOG_ENV other than local or test.
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-6c61756e63687061642d6c6f63616c2d6465762d6261636b75702d6b65792d30}
+      # Exact origins of the web app, comma separated (no wildcard).
+      WEB_ORIGINS: ${WEB_ORIGINS:-}
+      # proxies whose X-Forwarded-For the per-client sign-up
+      # limits believe (decisions-T12 #9). Empty: none.
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      # LAUN-6 (decisions-T17 #31): let the git API clients reach private
+      # addresses. Empty (the default): public hosts only. The app's own
+      # networks, loopback and the metadata addresses stay refused.
+      GIT_ALLOW_PRIVATE_PROVIDERS: ${GIT_ALLOW_PRIVATE_PROVIDERS:-}
+      GIT_ALLOW_PRIVATE_CIDRS: ${GIT_ALLOW_PRIVATE_CIDRS:-}
+      # Attachments. The app dials silo on the compose network;
+      # clients (browser, curl, agents on this host) get presigned URLs on
+      # the published port, so the two endpoints differ here. The keys are
+      # the PUBLIC dev defaults above; never use them outside local/test.
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://silo:9000}
+      S3_PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:${DEV_OPS_S3_PORT:-9100}}
+      S3_BUCKET: ${S3_BUCKET:-devops-attachments}
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-devops}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-devops-local-s3-secret}
+      # LAUN-8: where the web Linear import keeps its exports (mode 0700).
+      IMPORT_WORK_DIR: /work/import
+    volumes:
+      - import_work:/work/import
+    ports:
+      - "127.0.0.1:${DEV_OPS_APP_PORT:-8090}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      silo:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  silo_data:
+  import_work:

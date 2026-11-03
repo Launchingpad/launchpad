@@ -1,0 +1,101 @@
+.back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  color: var(--text);
+  font-weight: 600;
+}
+.back:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+.backIcon {
+  transform: rotate(90deg);
+}
+.search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--muted);
+}
+.search:focus-within {
+  border-color: var(--field-focus-border); /* LAUN-57: quiet, no ring */
+}
+.search input {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.heading {
+  margin: 14px 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.link:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+.active {
+  background: var(--selected);
+  font-weight: 600;
+}
+.via {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+.none {
+  margin: 8px;
+  color: var(--muted);
+}
+
+/* LAUN-235 (decisions-T42-themes.md): the settings sidebar in the Paper and Terminal themes. */
+:global(:root[data-look='paper']) .heading {
+  font: italic 600 13px var(--font-heading);
+}
+:global(:root[data-look='paper']) .link:hover {
+  background: var(--page-hover);
+}
+:global(:root[data-look='terminal']) .heading {
+  text-transform: lowercase;
+  font-weight: 400;
+}
+:global(:root[data-look='terminal']) .heading::before {
+  content: '## ';
+  content: '## ' / '';
+}
+:global(:root[data-look='terminal']) .active {
+  color: var(--accent);
+}

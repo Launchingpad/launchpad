@@ -1,0 +1,106 @@
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0 0 20px;
+  padding: 0;
+}
+.stepBtn {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.stepBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.stepBtn[aria-current='step'] {
+  color: var(--text);
+  border-color: var(--accent-solid);
+  font-weight: 600;
+}
+.banner {
+  margin-bottom: 16px;
+}
+.progress {
+  width: 100%;
+  height: 10px;
+  margin: 8px 0;
+}
+.block {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+.block p {
+  margin: 0;
+}
+.mono {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.names {
+  margin: 0;
+  padding-left: 18px;
+  overflow-wrap: anywhere;
+}
+.okText {
+  color: var(--text);
+  font-weight: 600;
+}
+.bad td {
+  color: var(--danger);
+}
+.mapSelect {
+  min-width: 160px;
+  max-width: 100%;
+}
+.cell {
+  display: grid;
+  gap: 2px;
+}
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Touch targets: 40px on a phone and with a coarse pointer (LAUN-10 review). The page wrapper holds every
+   control of the wizard; the dialogs are in a portal and have their own class. */
+@media (max-width: 760px), (pointer: coarse) {
+  .page button,
+  .page select,
+  .page input:not([type='checkbox']),
+  .page summary,
+  .dialogForm button,
+  .dialogForm input {
+    min-height: 40px;
+  }
+  .stepBtn {
+    min-height: 40px;
+  }
+  .mapSelect {
+    min-height: 40px;
+  }
+  .page label:has(input[type='checkbox']) {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .page [role='switch'] {
+    min-height: 40px;
+    min-width: 52px;
+  }
+}

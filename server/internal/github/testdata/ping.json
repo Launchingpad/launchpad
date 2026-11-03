@@ -1,0 +1,27 @@
+{
+  "zen": "Keep it logically awesome.",
+  "hook_id": 123456,
+  "hook": {
+    "type": "Repository",
+    "id": 123456,
+    "active": true,
+    "events": [
+      "pull_request"
+    ],
+    "config": {
+      "content_type": "json",
+      "url": "https://launchpad.example.com/api/v1/orgs/orbit/integrations/github/webhook"
+    }
+  },
+  "repository": {
+    "id": 4242,
+    "name": "example-app",
+    "full_name": "example-org/example-app",
+    "private": true,
+    "html_url": "https://github.com/example-org/example-app"
+  },
+  "sender": {
+    "login": "example-dev",
+    "id": 5001
+  }
+}

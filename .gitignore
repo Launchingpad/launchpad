@@ -1,0 +1,14 @@
+# Local-only files. Never commit them.
+CLAUDE.local.md
+.claude/
+.env
+.env.*
+!.env.example
+*.local
+.DS_Store
+# Scratch folders of the export script and local runs.
+/scratch/
+# A deploy env file may hold secrets (docs/self-hosting.md: deploy/sample.env).
+sample.env
+*.env
+!*.env.example

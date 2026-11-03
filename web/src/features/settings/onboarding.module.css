@@ -1,0 +1,153 @@
+.summary {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+}
+.step + .step {
+  border-top: 1px solid var(--border);
+}
+.mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.mark.done {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-accent);
+}
+.text {
+  flex: 1;
+  min-width: 0;
+}
+.name {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.badge {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.badge.done {
+  color: var(--text);
+}
+.help,
+.detail {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.detail {
+  font-style: italic;
+}
+.actions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+  align-items: center;
+}
+.note {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.mark.todo,
+.mark.review {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.mark.skipped,
+.mark.soon,
+.mark.loading {
+  border-style: dashed;
+}
+.mark.error {
+  border-color: var(--danger, #e5484d);
+  color: var(--danger, #e5484d);
+}
+.badge.todo,
+.badge.review {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.badge.skipped,
+.badge.soon,
+.badge.loading {
+  border-style: dashed;
+}
+.badge.error {
+  color: var(--danger, #e5484d);
+  border-color: var(--danger, #e5484d);
+}
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.bannerText {
+  flex: 1;
+  min-width: 200px;
+}
+@media (max-width: 680px) {
+  .step {
+    flex-wrap: wrap;
+  }
+  .actions {
+    width: 100%;
+    padding-left: 36px;
+  }
+}
+
+.problem {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--danger, #e5484d);
+}
+/* Touch targets: 40px on a phone and a coarse pointer. `.touch` is on the page body and on the banner. */
+.touch a,
+.touch button {
+  text-decoration: none;
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .touch a,
+  .touch button {
+    min-height: 40px;
+  }
+}
+
+/* A button that waits for a call keeps focus (aria-disabled) and says so. The focus ring stays. */
+.touch button[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}

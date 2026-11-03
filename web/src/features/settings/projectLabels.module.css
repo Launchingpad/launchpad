@@ -1,0 +1,13 @@
+/* LAUN-194: the label list has no default list padding; a label in a group sits a little in. */
+.list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list > .child {
+  padding-left: 36px;
+}
+.name {
+  overflow-wrap: anywhere;
+}

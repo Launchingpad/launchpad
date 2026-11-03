@@ -1,0 +1,100 @@
+{
+  "tools": [
+    {
+      "name": "get_issue",
+      "description": "Get one issue by identifier (ORB-123), id, or imported Linear id. Includes its attachments and its linked merge or pull requests (changeRequests, each with a state: draft, open, approved, merged or closed).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "description": "accepted for Linear compatibility; every field is returned. relations, comments and stateHistory also fetch those",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "description": "issue identifier (ORB-123) or id",
+            "type": "string"
+          },
+          "includeComments": {
+            "description": "include the comments",
+            "type": "boolean"
+          },
+          "includeRelations": {
+            "description": "include blocks / blockedBy / related / duplicate relations",
+            "type": "boolean"
+          },
+          "includeStateHistory": {
+            "description": "include the state change history",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "list_comments",
+      "description": "List the comments on an issue or a document, newest first.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "cursor": {
+            "description": "nextCursor from the previous page",
+            "type": "string"
+          },
+          "documentId": {
+            "description": "document id or slug",
+            "type": "string"
+          },
+          "issueId": {
+            "description": "issue identifier or id",
+            "type": "string"
+          },
+          "limit": {
+            "description": "page size, 1-250 (default 50; larger values are cut to 250)",
+            "type": "integer"
+          },
+          "orderBy": {
+            "description": "newest first by this field (default createdAt), as Linear",
+            "enum": [
+              "createdAt",
+              "updatedAt"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    },
+    {
+      "name": "get_document",
+      "description": "Get one document by id or slug.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "document id or slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true
+      }
+    }
+  ]
+}

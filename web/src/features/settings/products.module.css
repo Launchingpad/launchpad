@@ -1,0 +1,108 @@
+.list {
+  display: grid;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.item:first-child {
+  border-top: 0;
+}
+.swatch {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  overflow: hidden;
+}
+.text {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+.name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.meta {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.tag {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.rowActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+.checkList {
+  display: grid;
+  margin: 8px 0;
+}
+.colorRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.preview {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  flex: none;
+}
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+/* Touch targets (web-decisions "Settings, Products"): 40px on a phone and a coarse pointer. `.touch` wraps the
+   page and sits on every dialog of it, so the shared button and field classes are reached too. */
+@media (max-width: 760px), (pointer: coarse) {
+  .touch button,
+  .touch select,
+  .touch input[type='text'],
+  .touch input:not([type]) {
+    min-height: 40px;
+  }
+  .touch label:has(> input[type='checkbox']) {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+  }
+}

@@ -1,0 +1,110 @@
+#!/bin/sh
+# launchpad-mcp - start the Launchpad MCP server for the Claude Code plugin.
+#
+#   launchpad-mcp [ARGS]     fetch the binary if needed, then exec it with ARGS
+#   launchpad-mcp --prefetch only fetch the binary if needed (the SessionStart
+#                            hook runs this in the background so the first MCP
+#                            start does not wait for the download). It always
+#                            exits 0 and prints nothing on stdout.
+#
+# On the first run of a plugin version it downloads launchpad-mcp from the
+# GitHub Release with the same tag (v<plugin version>) through lib/install-mcp.sh
+# (https only, curl only, sha256 checked against SHA256SUMS, a new file then
+# mv -f). The binary is kept in the plugin data folder under v<version>, so the
+# next run starts it at once with no network. A new plugin version fetches the
+# matching binary. Then it execs the binary; arguments (for example
+# --profile reviewer) go through.
+#
+# stdout belongs to the MCP protocol: everything this script says goes to stderr.
+# It never reads or prints the token, and it removes it from the environment of
+# the installer and curl; only the final exec'd binary gets it.
+#
+# Trust: SHA256SUMS comes from the same origin as the binary, so the check
+# guards against a corrupt, truncated or stale download, not against a
+# compromised release. A binary that is already in the data folder is trusted
+# and is not hashed again at each start (the folder is the user's own).
+#
+# Test seam / mirror: LAUNCHPAD_MCP_RELEASE_URL=<origin> takes the files from
+# that origin (https, or http to localhost) instead of GitHub, as
+# install-mcp.sh --url does.
+set -eu
+
+prefetch=0
+if [ "${1:-}" = "--prefetch" ]; then
+	prefetch=1
+	shift
+fi
+
+die() {
+	printf 'launchpad-mcp: %s\n' "$*" >&2
+	if [ "$prefetch" -eq 1 ]; then exit 0; fi
+	exit 1
+}
+
+root=${CLAUDE_PLUGIN_ROOT:-}
+if [ -z "$root" ]; then
+	root=$(cd "$(dirname "$0")/.." && pwd -P) || die "cannot find the plugin folder"
+fi
+manifest=$root/.claude-plugin/plugin.json
+[ -r "$manifest" ] || die "cannot read $manifest"
+version=$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$manifest" | head -n 1)
+case "$version" in
+'' | *[!0-9A-Za-z.+-]*) die "the plugin version is missing or odd" ;;
+[0-9]*) ;;
+*) die "the plugin version must start with a digit" ;;
+esac
+
+data=${CLAUDE_PLUGIN_DATA:-}
+if [ -z "$data" ]; then
+	[ -n "${HOME:-}" ] || die "HOME is not set"
+	data=${XDG_DATA_HOME:-$HOME/.local/share}/launchpad-mcp
+fi
+dir=$data/v$version
+bin=$dir/launchpad-mcp
+
+# clean_install ARGS: run the installer in a subshell with every credential
+# removed from its environment: the token, and every CLAUDE_PLUGIN_OPTION_*
+# (Claude Code exports all userConfig values, sensitive ones too, to hooks).
+clean_install() {
+	(
+		for cv in $(env | sed -n 's/^\(CLAUDE_PLUGIN_OPTION_[A-Za-z0-9_]*\)=.*/\1/p'); do
+			unset "$cv"
+		done
+		unset LAUNCHPAD_TOKEN
+		exec sh "$root/lib/install-mcp.sh" "$@" >/dev/null
+	)
+}
+
+if [ ! -x "$bin" ]; then
+	printf 'launchpad-mcp: first run of version %s: fetching the server binary (this can take a while)\n' "$version" >&2
+	mkdir -p "$dir" || die "cannot make $dir"
+	if [ -n "${LAUNCHPAD_MCP_RELEASE_URL:-}" ]; then
+		# Show the mirror only when it is a plain origin (https://host[:port] or
+		# http://host[:port]); anything with user info, a path, a query or a
+		# fragment is not echoed (the installer will refuse it anyway).
+		m=${LAUNCHPAD_MCP_RELEASE_URL#*://}
+		case "$LAUNCHPAD_MCP_RELEASE_URL" in
+		https://* | http://*)
+			case "$m" in
+			'' | *[!]A-Za-z0-9.:[-]*) printf 'launchpad-mcp: using a mirror (not shown)\n' >&2 ;;
+			*) printf 'launchpad-mcp: using mirror %s://%s\n' "${LAUNCHPAD_MCP_RELEASE_URL%%://*}" "$m" >&2 ;;
+			esac
+			;;
+		*) printf 'launchpad-mcp: using a mirror (not shown)\n' >&2 ;;
+		esac
+		clean_install --url "$LAUNCHPAD_MCP_RELEASE_URL" --dir "$dir" || die "the download failed (see above)"
+	else
+		clean_install --version "v$version" --dir "$dir" || die "the download failed (see above)"
+	fi
+	[ -x "$bin" ] || die "the install did not make $bin"
+fi
+if [ "$prefetch" -eq 1 ]; then exit 0; fi
+
+# A value Claude Code could not substitute stays a literal ${user_config.KEY}:
+# treat it as unset.
+# shellcheck disable=SC2016
+{
+	case "${LAUNCHPAD_TEAM:-}" in '${user_config.'*) LAUNCHPAD_TEAM= ;; esac
+	case "${LAUNCHPAD_FILES_URL:-}" in '${user_config.'*) LAUNCHPAD_FILES_URL= ;; esac
+}
+exec "$bin" "$@"

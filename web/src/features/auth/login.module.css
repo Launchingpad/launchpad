@@ -1,0 +1,31 @@
+.page {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background: var(--surface);
+}
+.card {
+  width: min(380px, 100%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.title {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.code {
+  font: 22px var(--mono);
+  letter-spacing: 0.4em;
+  text-align: center;
+}
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}

@@ -1,0 +1,5 @@
+# Paths left out of the public export, one per line (relative to the repo root).
+# A line may name a file or a folder. Blank lines and lines that start with #
+# are ignored. scripts/export-public.sh removes these from the exported tree.
+CLAUDE.local.md
+.gitlab-ci.yml

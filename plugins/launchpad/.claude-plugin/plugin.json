@@ -1,0 +1,44 @@
+{
+  "name": "launchpad",
+  "version": "0.2.0",
+  "description": "Launchpad MCP server (issues, comments, documents, attachments) and a skill for agents",
+  "homepage": "https://github.com/kraetos10/launchpad",
+  "repository": "https://github.com/kraetos10/launchpad",
+  "author": {
+    "name": "Launchpad"
+  },
+  "license": "Apache-2.0",
+  "userConfig": {
+    "url": {
+      "type": "string",
+      "title": "Launchpad URL",
+      "description": "Address of your Launchpad server, for example https://launchpad.example.com",
+      "required": true
+    },
+    "org": {
+      "type": "string",
+      "title": "Organisation slug",
+      "description": "The slug of your organisation, for example acme",
+      "required": true
+    },
+    "token": {
+      "type": "string",
+      "title": "Agent token",
+      "description": "A Launchpad agent token (it starts with odt_). Make it in Settings, Agents. It is kept in your system credential store.",
+      "required": true,
+      "sensitive": true
+    },
+    "team": {
+      "type": "string",
+      "title": "Default team key",
+      "description": "Optional. The key of the team new issues go to, for example ACME",
+      "required": false
+    },
+    "files_url": {
+      "type": "string",
+      "title": "Files URL",
+      "description": "Optional. The address of your files host, for example https://launchpad-files.example.com. Needed for download_attachment.",
+      "required": false
+    }
+  }
+}

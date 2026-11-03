@@ -1,0 +1,7 @@
+# deploy/.env holds every production secret (mode 0600). Never commit it.
+.env
+.env.*
+!.env.example
+sample.env
+*.env
+!*.env.example

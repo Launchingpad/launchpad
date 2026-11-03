@@ -1,0 +1,107 @@
+{
+  "eventKey": "pr:reviewer:approved",
+  "date": "2026-10-26T10:15:30+0000",
+  "actor": {
+    "name": "example-dev",
+    "emailAddress": "example-dev@example.test",
+    "id": 7,
+    "displayName": "Example Dev",
+    "active": true,
+    "slug": "example-dev",
+    "type": "NORMAL"
+  },
+  "pullRequest": {
+    "id": 17,
+    "version": 1,
+    "title": "LAUN-84 fix login redirect",
+    "description": "Fixes the redirect after login.",
+    "state": "OPEN",
+    "open": true,
+    "closed": false,
+    "createdDate": 1793007600000,
+    "updatedDate": 1793008800000,
+    "fromRef": {
+      "id": "refs/heads/chen/laun-84-fix-login-redirect",
+      "displayId": "chen/laun-84-fix-login-redirect",
+      "latestCommit": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
+      "repository": {
+        "slug": "example-app",
+        "id": 4242,
+        "name": "example-app",
+        "scmId": "git",
+        "state": "AVAILABLE",
+        "statusMessage": "Available",
+        "forkable": true,
+        "project": {
+          "key": "PROJ",
+          "id": 84,
+          "name": "Project",
+          "public": false,
+          "type": "NORMAL"
+        },
+        "public": false
+      }
+    },
+    "toRef": {
+      "id": "refs/heads/develop",
+      "displayId": "develop",
+      "latestCommit": "1111111111111111111111111111111111111111",
+      "repository": {
+        "slug": "example-app",
+        "id": 4242,
+        "name": "example-app",
+        "scmId": "git",
+        "state": "AVAILABLE",
+        "statusMessage": "Available",
+        "forkable": true,
+        "project": {
+          "key": "PROJ",
+          "id": 84,
+          "name": "Project",
+          "public": false,
+          "type": "NORMAL"
+        },
+        "public": false
+      }
+    },
+    "locked": false,
+    "author": {
+      "user": {
+        "name": "example-dev",
+        "emailAddress": "example-dev@example.test",
+        "id": 7,
+        "displayName": "Example Dev",
+        "active": true,
+        "slug": "example-dev",
+        "type": "NORMAL"
+      },
+      "role": "AUTHOR",
+      "approved": false,
+      "status": "UNAPPROVED"
+    },
+    "reviewers": [],
+    "participants": [],
+    "links": {
+      "self": [
+        {
+          "href": "https://bitbucket.example.test/projects/PROJ/repos/example-app/pull-requests/17"
+        }
+      ]
+    }
+  },
+  "participant": {
+    "user": {
+      "name": "example-dev",
+      "emailAddress": "example-dev@example.test",
+      "id": 7,
+      "displayName": "Example Dev",
+      "active": true,
+      "slug": "example-dev",
+      "type": "NORMAL"
+    },
+    "role": "REVIEWER",
+    "approved": true,
+    "status": "APPROVED"
+  },
+  "previousStatus": "UNAPPROVED"
+}

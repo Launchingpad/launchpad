@@ -1,0 +1,256 @@
+/* LAUN-235 (docs/internal/decisions-T42-themes.md): the colour, type and shape tokens of the Paper and
+   Terminal themes. The Linear theme is tokens.css alone: it sets no data-look attribute, so nothing in this
+   file applies to it.
+
+   <html data-look="paper|terminal"> picks the theme; data-theme="light|dark" (or none: follow the OS) picks
+   the variant, as for Linear. Each variant block redefines EVERY colour token of tokens.css, so no Linear
+   value leaks in; contrast.test.ts checks that and computes the WCAG ratios per theme and variant.
+   Selector order matters: a theme's light block (0,2,0) comes after the Linear dark blocks (0,2,0) because
+   global.css imports this file after tokens.css, and each dark block here is (0,3,0). The values are the
+   Penpot token sheets of LAUN-234 plus the derived hover tones and tints of the decision record.
+   [data-preview='x'] is the mini-preview of a theme on the Appearance page: it takes the theme's values in the
+   variant the page shows, whatever theme the page itself shows. */
+
+/* Paper: type and shape (both variants). */
+[data-preview='paper'],
+:root[data-look='paper'] {
+  --font: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-heading: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --radius: 6px;
+  --body-size: 15px;
+  --shadow: none;
+  --shadow-card: none;
+}
+/* Paper light */
+[data-preview='paper'],
+:root[data-look='paper'] {
+  color-scheme: light;
+  --bg: #fbf8f1;
+  --bg-page: #ede6d8;
+  --bg-card: #fffdf8;
+  --surface: #f3ede1;
+  --surface-hover: #e9e2d3;
+  --card-surface: #f3ede1;
+  --card-surface-hover: #e9e2d3;
+  --page-hover: #e3dbca;
+  --border: #ddd3c1;
+  --border-strong: #8c8170;
+  --text: #2b2620;
+  --muted: #675e52;
+  --accent: #2f5670;
+  --accent-solid: #2f5670;
+  --on-accent: #fbf8f1;
+  --danger: #9e3324;
+  --danger-bg: #f6e4dd;
+  --warn-bg: #f6e9cc;
+  --warn-text: #875400;
+  --success: #3d6a35;
+  --selected: #e8e1d1;
+  --focus: #2f5670;
+  --field-focus-border: #8c8170;
+  --knob: #fffdf8;
+  --state-backlog: #82796c;
+  --state-todo: #5e574d;
+  --state-progress: #a5650a;
+  --state-review: #7a4f8f;
+  --state-testing: #2b6f7e;
+  --state-done: #4a7a3f;
+  --state-canceled: #82796c;
+}
+/* Paper dark: the OS asks for dark and the person chose no fixed variant */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) [data-preview='paper'],
+  :root[data-look='paper']:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #1a1714;
+    --bg-page: #12100d;
+    --bg-card: #29241f;
+    --surface: #211d19;
+    --surface-hover: #2c2722;
+    --card-surface: #332d27;
+    --card-surface-hover: #3b342d;
+    --page-hover: #1f1b17;
+    --border: #3a342c;
+    --border-strong: #7d7262;
+    --text: #ede5d6;
+    --muted: #ada393;
+    --accent: #9fc0d8;
+    --accent-solid: #9fc0d8;
+    --on-accent: #14120f;
+    --danger: #f0a091;
+    --danger-bg: #3a1e18;
+    --warn-bg: #352a12;
+    --warn-text: #e9c27a;
+    --success: #a9cf98;
+    --selected: #2e2923;
+    --focus: #9fc0d8;
+    --field-focus-border: #7d7262;
+    --knob: #14120f;
+    --state-backlog: #8a8072;
+    --state-todo: #c9c0b0;
+    --state-progress: #e3a94a;
+    --state-review: #c7a3d8;
+    --state-testing: #7fc3cf;
+    --state-done: #9cc98a;
+    --state-canceled: #8a8072;
+  }
+}
+/* Paper dark: chosen */
+:root[data-theme='dark'] [data-preview='paper'],
+:root[data-look='paper'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #1a1714;
+  --bg-page: #12100d;
+  --bg-card: #29241f;
+  --surface: #211d19;
+  --surface-hover: #2c2722;
+  --card-surface: #332d27;
+  --card-surface-hover: #3b342d;
+  --page-hover: #1f1b17;
+  --border: #3a342c;
+  --border-strong: #7d7262;
+  --text: #ede5d6;
+  --muted: #ada393;
+  --accent: #9fc0d8;
+  --accent-solid: #9fc0d8;
+  --on-accent: #14120f;
+  --danger: #f0a091;
+  --danger-bg: #3a1e18;
+  --warn-bg: #352a12;
+  --warn-text: #e9c27a;
+  --success: #a9cf98;
+  --selected: #2e2923;
+  --focus: #9fc0d8;
+  --field-focus-border: #7d7262;
+  --knob: #14120f;
+  --state-backlog: #8a8072;
+  --state-todo: #c9c0b0;
+  --state-progress: #e3a94a;
+  --state-review: #c7a3d8;
+  --state-testing: #7fc3cf;
+  --state-done: #9cc98a;
+  --state-canceled: #8a8072;
+}
+
+/* Terminal: type and shape (both variants). */
+[data-preview='terminal'],
+:root[data-look='terminal'] {
+  --font: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-heading: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --radius: 0px;
+  --body-size: 13px;
+  --shadow: none;
+  --shadow-card: none;
+}
+/* Terminal light */
+[data-preview='terminal'],
+:root[data-look='terminal'] {
+  color-scheme: light;
+  --bg: #f6f6ef;
+  --bg-page: #e4e4da;
+  --bg-card: #fffffa;
+  --surface: #edede4;
+  --surface-hover: #e3e3d8;
+  --card-surface: #edede4;
+  --card-surface-hover: #e3e3d8;
+  --page-hover: #d9d9cd;
+  --border: #c3c3b6;
+  --border-strong: #6e6e62;
+  --text: #121310;
+  --muted: #4d4e45;
+  --accent: #8a4600;
+  --accent-solid: #121310;
+  --on-accent: #ffb000;
+  --danger: #b0201a;
+  --danger-bg: #f7e1dc;
+  --warn-bg: #f3e7c4;
+  --warn-text: #7a5200;
+  --success: #1e6b37;
+  --selected: #e3e6d3;
+  --focus: #8a4600;
+  --field-focus-border: #6e6e62;
+  --knob: #fffffa;
+  --state-backlog: #5c5e55;
+  --state-todo: #2e302a;
+  --state-progress: #8a4600;
+  --state-review: #6b2e8c;
+  --state-testing: #0b6270;
+  --state-done: #1e6b37;
+  --state-canceled: #5c5e55;
+}
+/* Terminal dark: the OS asks for dark and the person chose no fixed variant */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) [data-preview='terminal'],
+  :root[data-look='terminal']:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0a0e0b;
+    --bg-page: #050705;
+    --bg-card: #111913;
+    --surface: #0d130f;
+    --surface-hover: #15211a;
+    --card-surface: #17221b;
+    --card-surface-hover: #1d2b22;
+    --page-hover: #101812;
+    --border: #24382a;
+    --border-strong: #4f7a5a;
+    --text: #d3f2d9;
+    --muted: #86ae90;
+    --accent: #ffb000;
+    --accent-solid: #ffb000;
+    --on-accent: #0a0e0b;
+    --danger: #ff6b5e;
+    --danger-bg: #2b100d;
+    --warn-bg: #2a2209;
+    --warn-text: #ffd866;
+    --success: #4be38e;
+    --selected: #173020;
+    --focus: #ffb000;
+    --field-focus-border: #ffb000;
+    --knob: #0a0e0b;
+    --state-backlog: #7f9a86;
+    --state-todo: #bfe3c6;
+    --state-progress: #ffb000;
+    --state-review: #d4a2f2;
+    --state-testing: #5fd0de;
+    --state-done: #4be38e;
+    --state-canceled: #7f9a86;
+  }
+}
+/* Terminal dark: chosen */
+:root[data-theme='dark'] [data-preview='terminal'],
+:root[data-look='terminal'][data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0a0e0b;
+  --bg-page: #050705;
+  --bg-card: #111913;
+  --surface: #0d130f;
+  --surface-hover: #15211a;
+  --card-surface: #17221b;
+  --card-surface-hover: #1d2b22;
+  --page-hover: #101812;
+  --border: #24382a;
+  --border-strong: #4f7a5a;
+  --text: #d3f2d9;
+  --muted: #86ae90;
+  --accent: #ffb000;
+  --accent-solid: #ffb000;
+  --on-accent: #0a0e0b;
+  --danger: #ff6b5e;
+  --danger-bg: #2b100d;
+  --warn-bg: #2a2209;
+  --warn-text: #ffd866;
+  --success: #4be38e;
+  --selected: #173020;
+  --focus: #ffb000;
+  --field-focus-border: #ffb000;
+  --knob: #0a0e0b;
+  --state-backlog: #7f9a86;
+  --state-todo: #bfe3c6;
+  --state-progress: #ffb000;
+  --state-review: #d4a2f2;
+  --state-testing: #5fd0de;
+  --state-done: #4be38e;
+  --state-canceled: #7f9a86;
+}

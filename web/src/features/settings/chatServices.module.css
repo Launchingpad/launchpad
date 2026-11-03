@@ -1,0 +1,182 @@
+/* LAUN-204: Settings > Chat services. One column; the controls stack on a phone. */
+.warn {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  font-size: 13px;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.kind {
+  font-size: 12px;
+  color: var(--muted);
+}
+.host {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 12px;
+  line-height: 18px;
+}
+.chipFail {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.chipWarn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-color: transparent;
+}
+.chipOff {
+  color: var(--muted);
+}
+.detail {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.detail p {
+  margin: 0;
+}
+.problem {
+  color: var(--danger, #e5484d);
+}
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.result {
+  font-size: 13px;
+  min-height: 0;
+}
+.result p {
+  margin: 0;
+}
+.empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.addBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.fields {
+  display: grid;
+  gap: 14px;
+}
+.kinds,
+.events {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.kinds legend,
+.events legend {
+  padding: 0;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  min-width: 0;
+}
+.choice input {
+  margin-top: 3px;
+  flex: none;
+}
+.choice label {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  cursor: pointer;
+}
+.choiceHint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.secret {
+  width: 100%;
+  max-width: 520px;
+}
+.kindHint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.dlgActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .choice {
+    padding: 10px 0;
+  }
+  .choice input {
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+  }
+  .secret {
+    max-width: none;
+  }
+  .rowActions button,
+  .addBar button,
+  .dlg button,
+  .dlg input[type='text'],
+  .dlg input[type='password'] {
+    min-height: 40px;
+  }
+  .rowActions button {
+    flex: 1 1 auto;
+  }
+}

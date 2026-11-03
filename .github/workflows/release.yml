@@ -1,0 +1,96 @@
+# Release: build the MCP binary for four systems and publish a GitHub Release.
+# It runs when a tag that starts with "v" is pushed (for example v1.2.3).
+# The release holds: launchpad-mcp-<os>-<arch> (4 files), SHA256SUMS and
+# install-mcp.sh. Steps to cut a release: docs/releasing-mcp.md.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+# The job needs to write the release and nothing else.
+permissions:
+  contents: write
+
+jobs:
+  mcp:
+    runs-on: ubuntu-24.04
+    steps:
+      # Actions are pinned to a full commit sha (the tag is in the comment).
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          # Full history of every branch, so the next steps can check that the
+          # tagged commit is on master.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: server/go.mod
+          cache: false
+
+      - name: Check the tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "the tag must start with v and a digit" >&2; exit 1 ;;
+          esac
+          case "$TAG" in
+            *[!A-Za-z0-9._+-]*) echo "the tag holds a character that is not allowed" >&2; exit 1 ;;
+          esac
+          # The Claude Code plugin downloads the release with the tag v<plugin version>.
+          pv="$(sed -n 's/^[[:space:]]*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' plugins/launchpad/.claude-plugin/plugin.json | head -n 1)"
+          [ "v${pv}" = "$TAG" ] || { echo "plugins/launchpad/.claude-plugin/plugin.json says version ${pv:-none}, the tag is $TAG: bump the plugin version first" >&2; exit 1; }
+
+      - name: Check the tagged commit is on master
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          commit="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          git rev-parse --verify --quiet refs/remotes/origin/master >/dev/null || { echo "origin/master was not fetched" >&2; exit 1; }
+          git merge-base --is-ancestor "$commit" refs/remotes/origin/master || { echo "the tag $TAG points at $commit, which is not on master: tag a commit of master" >&2; exit 1; }
+
+      - name: Build the four binaries
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          mkdir -p dist
+          cd server
+          for t in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64; do
+            os="${t%/*}"; arch="${t#*/}"
+            CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -trimpath \
+              -ldflags "-X main.version=${TAG}" \
+              -o "../dist/launchpad-mcp-${os}-${arch}" ./cmd/mcp
+          done
+          cd ../dist
+          cp ../scripts/install-mcp.sh .
+          sha256sum launchpad-mcp-* > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Smoke test the linux/amd64 binary
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          got="$(dist/launchpad-mcp-linux-amd64 --version)"
+          echo "$got"
+          [ "$got" = "launchpad-mcp ${TAG}" ] || { echo "the binary does not print the tag" >&2; exit 1; }
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          gh release create "$TAG" --title "$TAG" --generate-notes \
+            dist/launchpad-mcp-darwin-arm64 \
+            dist/launchpad-mcp-darwin-amd64 \
+            dist/launchpad-mcp-linux-amd64 \
+            dist/launchpad-mcp-linux-arm64 \
+            dist/SHA256SUMS \
+            dist/install-mcp.sh

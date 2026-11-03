@@ -1,0 +1,377 @@
+# dev-ops PRODUCTION stack. Start it with deploy/deploy.sh, never
+# with a bare `docker compose up`: the script writes deploy/.env (secrets,
+# mode 0600), makes the silo bucket and app user, waits for health and runs
+# the smoke test. Runbook: docs/deploy.md.
+#
+# The local dev stack is server/docker-compose.yml. This file shares nothing
+# with it: no public dev password, no AUTH_FIXED_OTP, LOG_ENV is fixed to
+# production, and every secret comes from deploy/.env (the `:?` forms fail
+# the render when one is missing).
+#
+# Published ports, and nothing else (deploy/check-compose.sh enforces it):
+#   web   ${DEPLOY_WEB_PORT}   -> nginx: the web app, /api and /healthz
+#   silo  ${DEPLOY_FILES_PORT} -> the S3 API, for presigned URLs only
+# Both speak plain HTTP, on DEPLOY_BIND_ADDR (default 127.0.0.1, for a proxy
+# that runs as a host process; a containerized proxy needs its Docker
+# network's gateway or the LAN address, see docs/deploy.md). The operator's outer proxy terminates TLS for
+# https://${WEB_HOST} and https://${FILES_HOST}, forwards to these ports and
+# MUST pass the Host header unchanged (SigV4 signs it; nginx routes on it).
+#
+# Image pins: tag + multi-arch index digest. The two built images (app, web)
+# pin their own bases in server/Dockerfile and web/Dockerfile.
+name: "${DEPLOY_PROJECT:?DEPLOY_PROJECT is not set; run deploy/deploy.sh, which reads deploy/.env}"
+
+x-logging: &logging
+  # Bounded container logs. While the install has no user, each app boot
+  # logs a first-run setup link (24h, single use); a newer link
+  # closes the older ones, so a link left in this log is harmless once
+  # setup is done or a new link was made.
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # One-shot, runs before silo, backup and offsite: a new named volume is
+  # owned by root, and those services run as non-root users. No network.
+  #
+  # NO no-new-privileges here, and ONLY here. On Linux 7.0
+  # (7.0.0-38-generic, Docker 29.9.2, AppArmor + default seccomp), cap_drop
+  # ALL + cap_add CHOWN + no-new-privileges makes the exec of the entrypoint
+  # fail: `exec /bin/sh: operation not permitted`, exit 255. Measured by
+  # an operator with docker run on this image as 0:0, no network: adding
+  # DAC_OVERRIDE does not help; the same caps without no-new-privileges
+  # work; cap_drop ALL alone works. Docker Desktop on macOS ran the shipped
+  # form (with the flag) without the error, so CI never saw it. The
+  # exception is safe enough: a one-shot root container, no network, no
+  # capability but CHOWN, two chown calls on its own volumes. Keep cap_drop
+  # ALL, cap_add CHOWN, network_mode none and restart "no";
+  # deploy/check-compose.sh fails if any of them changes
+  # (deploy/test-compose-check.sh proves it).
+  volume-init:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    user: "0:0"
+    network_mode: none
+    entrypoint: ["/bin/sh", "-c", "chown 10001:10001 /silo /import-work && chown 70:70 /backups /offsite-work"]
+    volumes:
+      - silo_data:/silo
+      - backups:/backups
+      # the web import's exports. The app runs as uid 10001 on a
+      # read-only root file system with no capability, so it can write
+      # only to a volume that uid owns. Only chown here: chmod would fail
+      # on a re-run (the owner is then 10001 and this container has no
+      # FOWNER); the server sets mode 0700 itself.
+      - import_work:/import-work
+      # (decisions-T16 #14, #18): the off-site worker's scratch
+      # volume, owned by uid 70 like the dumps it reads.
+      - offsite_work:/offsite-work
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    logging: *logging
+    restart: "no"
+
+  postgres:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing from deploy/.env}
+      POSTGRES_DB: devops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # (decisions-T16 #13): offsite_db is the internal network that
+    # only postgres and offsite join.
+    networks: [backend, offsite_db]
+    # No ports: only the app, the backup job and the off-site worker reach
+    # it, on internal networks. The entrypoint drops to the postgres user
+    # (uid 70).
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+    restart: unless-stopped
+
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: "10001:10001"
+    command: server /data
+    environment:
+      HOME: /tmp
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:?SILO_ROOT_USER missing from deploy/.env}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:?SILO_ROOT_PASSWORD missing from deploy/.env}
+      # No web console. Browsers may call the S3 API (presigned PUT and GET)
+      # from the web app's origin only.
+      MINIO_BROWSER: "off"
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${WEB_HOST:?WEB_HOST missing from deploy/.env}
+    volumes:
+      - silo_data:/data
+    # edge for the app and the published port; files_net (internal) is the one
+    # way offsite reaches silo (decisions-T16 #38).
+    networks: [edge, files_net]
+    ports:
+      - "${DEPLOY_BIND_ADDR:-127.0.0.1}:${DEPLOY_FILES_PORT:-4002}:9000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    logging: *logging
+    restart: unless-stopped
+
+  app:
+    build: ../server
+    image: launchpad-api:${DEPLOY_VERSION:-unversioned}
+    environment:
+      DATABASE_URL: postgres://devops:${POSTGRES_PASSWORD}@postgres:5432/devops?sslmode=disable
+      PORT: "8080"
+      # Fixed, not interpolated: an exported LOG_ENV=local in the operator's
+      # shell must not turn the dev seams on.
+      LOG_ENV: production
+      PUBLIC_BASE_URL: https://${WEB_HOST}
+      WEB_ORIGINS: https://${WEB_HOST}
+      # Optional (decisions-T12 #9): the proxies whose
+      # X-Forwarded-For the app believes for its per-client sign-up limits.
+      # Empty (the default): no per-client limit behind nginx, only the
+      # global and per-email ones. To turn it on, list EVERY hop: this
+      # stack's edge network AND the outer TLS proxy (docs/deploy.md).
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      # (decisions-T17 #31): let the git API clients reach private
+      # addresses (a self-hosted GitLab on the LAN). Empty (the default):
+      # public hosts only. GIT_ALLOW_PRIVATE_PROVIDERS=1 opens 10/8,
+      # 172.16/12, 192.168/16, fc00::/7 and 100.64/10; GIT_ALLOW_PRIVATE_CIDRS
+      # is a comma list of narrower ranges. The app's own networks, loopback
+      # and the cloud metadata addresses stay refused. A shell on this host is
+      # the only way to set them (docs/deploy.md).
+      GIT_ALLOW_PRIVATE_PROVIDERS: ${GIT_ALLOW_PRIVATE_PROVIDERS:-}
+      GIT_ALLOW_PRIVATE_CIDRS: ${GIT_ALLOW_PRIVATE_CIDRS:-}
+      POSTMARK_SERVER_TOKEN: ${POSTMARK_SERVER_TOKEN:-}
+      POSTMARK_FROM: ${POSTMARK_FROM:-}
+      AUTH_OTP_PEPPER: ${AUTH_OTP_PEPPER:?AUTH_OTP_PEPPER missing from deploy/.env}
+      # Seals the mail secrets a platform admin stores in the app.
+      # deploy.sh generates it; a new value makes the stored secrets
+      # unreadable (mail falls back to POSTMARK_* until they are re-entered).
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:?SETTINGS_ENCRYPTION_KEY missing from deploy/.env}
+      # Seals the off-site backup destinations' secrets (decisions-T16
+      # #12). deploy.sh generates it once and never again: a new value makes
+      # the stored destination secrets unreadable. The off-site worker holds
+      # it too; neither holds the other's mail key.
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY missing from deploy/.env}
+      # The app dials silo on the compose network; clients get presigned
+      # URLs on the public https files host.
+      S3_ENDPOINT: http://silo:9000
+      S3_PUBLIC_ENDPOINT: https://${FILES_HOST:?FILES_HOST missing from deploy/.env}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET missing from deploy/.env}
+      S3_REGION: us-east-1
+      # A bucket-scoped silo user (deploy.sh makes it), not the root key.
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY missing from deploy/.env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY missing from deploy/.env}
+      # (decisions-T17 #39): the web import's exports hold ticket text
+      # and user emails. A named volume, owned by uid 10001 (volume-init),
+      # swept by the server; the root file system stays read-only.
+      IMPORT_WORK_DIR: /work/import
+    volumes:
+      - import_work:/work/import
+    networks: [backend, edge]
+    # No ports: nginx is the only way in. The image runs as uid 10001.
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      silo:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+  web:
+    build: ../web
+    image: launchpad-web:${DEPLOY_VERSION:-unversioned}
+    environment:
+      WEB_HOST: ${WEB_HOST}
+      # In the CSP: connect-src (presigned PUT), img-src and media-src (the
+      # download redirect lands on the files host).
+      FILES_ORIGIN: https://${FILES_HOST}
+      API_ORIGIN: ""
+      # Set by deploy.sh: a changed template recreates the container.
+      DEPLOY_NGINX_CONF_SUM: ${DEPLOY_NGINX_CONF_SUM:-}
+    volumes:
+      # Replaces the image's server block with the same-origin one (/api
+      # proxied to the app). security.inc stays the image's own.
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks: [edge]
+    ports:
+      - "${DEPLOY_BIND_ADDR:-127.0.0.1}:${DEPLOY_WEB_PORT:-4001}:8080"
+    # The nginx master starts as root (it renders the templates) and its
+    # workers run as `nginx`. Every other capability is dropped, it listens
+    # on 8080 (no NET_BIND_SERVICE) and the root file system is read-only.
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/nginx-health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+  # Nightly pg_dump (custom format) into the backups volume, 30 days kept.
+  backup:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    user: "70:70"
+    entrypoint: ["/bin/sh", "/backup/backup.sh", "loop"]
+    environment:
+      PGHOST: postgres
+      PGUSER: devops
+      PGDATABASE: devops
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      BACKUP_AT_UTC: ${BACKUP_AT_UTC:-03:15}
+      DEPLOY_BACKUP_SH_SUM: ${DEPLOY_BACKUP_SH_SUM:-}
+    volumes:
+      - backups:/backups
+      - ./backup/backup.sh:/backup/backup.sh:ro
+    networks: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+  # (decisions-T16 #10 to #15, #46): the off-site backup worker. The
+  # SAME image as `app` (one `dc build` makes it), another command. All
+  # traffic to a destination typed by an admin leaves from here and nowhere
+  # else. It reaches postgres (offsite_db, internal) and the internet
+  # (egress), and nothing else of ours: it is not on backend or edge, so app,
+  # web, silo and backup do not resolve. Its database role (`offsite`) has
+  # only the grants of deploy/backup/offsite-grants.sql. It holds no mail
+  # key and no AUTH_OTP_PEPPER. Its S3_* variables (#38) are a
+  # READ-ONLY silo user made for offsite alone (deploy.sh), never the app's
+  # key; it reaches silo over files_net (internal, only silo and offsite) and
+  # nothing else of ours. deploy.sh starts it LAST, after the app has migrated and the role
+  # has its grants; never `up` it with a bare `dc up`.
+  offsite:
+    build: ../server
+    image: launchpad-api:${DEPLOY_VERSION:-unversioned}
+    user: "70:70"
+    command: ["/bin/server", "offsite"]
+    environment:
+      DATABASE_URL: postgres://offsite:${OFFSITE_DB_PASSWORD:?OFFSITE_DB_PASSWORD missing from deploy/.env}@postgres:5432/devops?sslmode=disable
+      # Fixed, like the app's.
+      LOG_ENV: production
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY missing from deploy/.env}
+      # Operator list (comma CIDRs, default empty) of the private ranges a
+      # destination may use (decisions-T16 #35). Validated by deploy.sh and at
+      # the worker's boot. Only a shell on this host sets it.
+      BACKUP_ALLOW_PRIVATE_CIDRS: ${BACKUP_ALLOW_PRIVATE_CIDRS:-}
+      BACKUP_DUMP_DIR: /backups
+      # NOT /work: the image has /work/import, and Docker copies the image
+      # directory's owner (root) onto a new volume mounted there, which would
+      # undo volume-init's chown (measured).
+      OFFSITE_WORK_DIR: /offsite-work
+      OFFSITE_HEALTH_FILE: /tmp/offsite.alive
+      LAUNCHPAD_VERSION: ${DEPLOY_VERSION:-unversioned}
+      # The attachment backup: silo on files_net, with the read-only
+      # user deploy.sh makes (GetObject, ListBucket). Not S3_PUBLIC_ENDPOINT.
+      S3_ENDPOINT: http://silo:9000
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET missing from deploy/.env}
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: ${OFFSITE_S3_ACCESS_KEY:?OFFSITE_S3_ACCESS_KEY missing from deploy/.env}
+      S3_SECRET_KEY: ${OFFSITE_S3_SECRET_KEY:?OFFSITE_S3_SECRET_KEY missing from deploy/.env}
+    volumes:
+      # The dumps, read-only: the worker never changes or prunes them.
+      - backups:/backups:ro
+      - offsite_work:/offsite-work
+    networks: [offsite_db, egress, files_net]
+    # No ports. uid 70 reads the dumps (mode 0600, owner 70).
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      # Liveness of the process only (the health file is touched every 10 s),
+      # so a missing role cannot deadlock a first deploy.
+      test: ["CMD", "/bin/server", "offsite", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+networks:
+  # Postgres and the backup job: no route out, no published port.
+  backend:
+    internal: true
+  edge: {}
+  # only postgres and offsite. No route out.
+  offsite_db:
+    internal: true
+  # a normal bridge with a route out; only offsite joins it.
+  egress: {}
+  # only silo and offsite. No route out. The attachment backup reads
+  # silo here, so offsite never joins edge (where app and web are).
+  files_net:
+    internal: true
+
+# The label key is `dev.orbit.deploy` for historic reasons. It is kept on
+# purpose: existing installs have volumes with this label, and the project
+# guard in deploy.sh would refuse them if the key changed. Do not rename it.
+# The label marks them as this file's: deploy.sh refuses a project whose
+# volumes lack it (another stack, e.g. the dev stack, under the same name).
+# NEVER edit this block (names, labels, driver). If compose ever offers to
+# recreate a volume because its configuration changed, answer N: y deletes
+# it, and for postgres_data that is the whole database (docs/deploy.md).
+volumes:
+  postgres_data:
+    labels:
+      dev.orbit.deploy: production
+  silo_data:
+    labels:
+      dev.orbit.deploy: production
+  backups:
+    labels:
+      dev.orbit.deploy: production
+  import_work:
+    labels:
+      dev.orbit.deploy: production
+  offsite_work:
+    labels:
+      dev.orbit.deploy: production

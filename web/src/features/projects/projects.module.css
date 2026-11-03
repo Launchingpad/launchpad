@@ -1,0 +1,821 @@
+/* Projects list and project page (LAUN-119). Colours are tokens; whole-row links get no underline on hover (LAUN-60). */
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.h1 {
+  margin: 0;
+  font-size: 18px;
+}
+.sub {
+  color: var(--muted);
+  font-size: 13px;
+}
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--text);
+  font-weight: 500;
+}
+.title:hover {
+  text-decoration: none;
+}
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.state {
+  justify-self: start;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: min(100%, 240px);
+  overflow-wrap: anywhere;
+}
+.state svg {
+  flex: none;
+}
+.lead,
+.dates {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  color: var(--muted);
+}
+.overdue {
+  font-size: 13px;
+  color: var(--danger);
+  font-weight: 600;
+}
+.muted {
+  color: var(--muted);
+}
+.progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.progressWide {
+  min-width: 160px;
+}
+.bar {
+  flex: 1;
+  min-width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+.fill {
+  display: block;
+  height: 100%;
+  background: var(--accent-solid);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.pHead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px 4px;
+  min-width: 0;
+}
+.crumb {
+  font-size: 13px;
+}
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.pTitle {
+  font-size: 18px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.spacer {
+  flex: 1;
+}
+.description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  font-size: 13px;
+}
+.facts dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.facts dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.team {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  color: var(--text);
+  font-size: 12px;
+  max-width: 100%;
+}
+.team:hover {
+  text-decoration: none;
+  background: var(--surface-hover);
+}
+.teamKey {
+  font: 11px var(--mono);
+  color: var(--muted);
+}
+.archived {
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  font-size: 13px;
+}
+.milestones {
+  padding: 8px 16px;
+}
+.h2 {
+  margin: 0 0 4px;
+  font-size: 13px;
+}
+.msList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.ms {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.ms:last-child {
+  border-bottom: 0;
+}
+.msName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* LAUN-162: the Logo section of the project page. */
+.logoSection {
+  padding: 8px 16px;
+}
+.logoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.logoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.logoActions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.logoBody p {
+  margin: 0;
+}
+.logoProblem {
+  color: var(--danger);
+  font-size: 13px;
+}
+.logoOk {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* LAUN-166: the project dialog, the New project button and the product groups. */
+.headSpacer {
+  flex: 1;
+}
+.group {
+  margin: 0;
+}
+.groupHead {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.groupCount {
+  color: var(--muted);
+  font-weight: 400;
+}
+.groupToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: start;
+}
+.fieldError {
+  color: var(--danger);
+  font-size: 12px;
+}
+.teamsField {
+  border: 0;
+  margin: 0 0 12px;
+  padding: 0;
+  min-width: 0;
+}
+.teamsField legend {
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+@media (max-width: 760px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 760px), (pointer: coarse) {
+  .touch button,
+  .touch select,
+  .touch input[type='text'],
+  .touch input[type='date'],
+  .touch input:not([type]) {
+    min-height: 40px;
+  }
+  .touch label:has(> input[type='checkbox']) {
+    min-height: 40px;
+  }
+}
+
+.groupHint {
+  margin: 0;
+  padding: 6px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* LAUN-165: the table, its filter bar and the health pill. */
+.filterBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.spacer {
+  flex: 1;
+}
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 8px;
+  min-height: 32px;
+  background: var(--bg);
+}
+.search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 140px;
+  min-width: 0;
+}
+.search:focus-within {
+  border-color: var(--field-focus-border);
+}
+.sortPick select {
+  min-height: 32px;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-align: left;
+  white-space: nowrap;
+}
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sortBtn:hover {
+  color: var(--text);
+}
+.sortArrow {
+  display: inline-block;
+  min-width: 1ch;
+}
+.thead th[aria-sort] .sortBtn {
+  color: var(--text);
+}
+.tr {
+  border-bottom: 1px solid var(--border);
+}
+.tr:hover {
+  background: var(--surface-hover);
+}
+.nameCell {
+  min-width: 160px;
+  padding: 10px 16px;
+  text-align: left;
+  font-weight: 500;
+  min-width: 0;
+}
+.cell {
+  padding: 10px 16px;
+  font-size: 13px;
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+}
+.cell.lead {
+  white-space: normal;
+  color: var(--muted);
+}
+.cell.dates {
+  color: var(--muted);
+}
+.health {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.health_off {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: var(--danger);
+}
+.health_risk {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border-color: var(--warn-text);
+}
+.health_on {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.groupRow {
+  border: 0;
+}
+@media (max-width: 760px) {
+  /* A row becomes a card: the name on top, the rest wrapping under it. Sorting moves to the Sort control. */
+  .thead {
+    display: none;
+  }
+  .table,
+  .table tbody {
+    display: block;
+  }
+  .tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 10px 16px;
+  }
+  .groupRow {
+    display: block;
+  }
+  .nameCell {
+    flex: 1 1 100%;
+    padding: 0;
+  }
+  .cell {
+    padding: 0;
+    white-space: normal;
+  }
+  .filterBar {
+    padding: 8px 12px;
+  }
+  .search {
+    flex: 1 1 100%;
+  }
+  .search input {
+    width: 100%;
+  }
+}
+.groupH2 {
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* LAUN-177: the New project dialog, restyled after Linear. Colours are tokens. */
+.nameInput {
+  display: block;
+  width: 100%;
+  padding: 4px 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  resize: none;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+.nameInput::placeholder,
+.descInput::placeholder {
+  color: var(--muted);
+}
+.descInput {
+  display: block;
+  width: 100%;
+  min-height: 72px;
+  max-height: 50vh;
+  margin: 0 0 10px;
+  padding: 4px 0;
+  border: 0;
+  outline: 0;
+  resize: none;
+  overflow-y: auto;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  line-height: 1.5;
+}
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 12px;
+}
+.rule {
+  height: 0;
+  margin: 0 0 10px;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.wrapAny {
+  overflow-wrap: anywhere;
+}
+.createBtn {
+  border-radius: 999px;
+  padding-inline: 16px;
+}
+.pills > button,
+.pills > div > button {
+  border-radius: 999px;
+}
+.pillErrors {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+.datePanel {
+  display: grid;
+  gap: 6px;
+  padding: 4px;
+}
+.datePanel > label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.msCard {
+  margin: 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.msCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 4px 12px;
+}
+.msToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.msToggle:disabled {
+  cursor: default;
+}
+.msToggle svg {
+  transform: rotate(-90deg);
+  transition: transform 120ms;
+}
+.msToggle svg.msOpen {
+  transform: none;
+}
+.msRows {
+  margin: 0;
+  padding: 0 12px 12px;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.msFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px auto;
+  gap: 8px;
+  align-items: center;
+}
+.submitHint {
+  margin: 0 auto 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  align-self: center;
+}
+.confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  justify-content: flex-end;
+}
+.confirmText {
+  margin-right: auto;
+}
+@media (max-width: 760px) {
+  .msFields {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .msFields > input[type='date'] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  [role='dialog'].dlg {
+    position: fixed;
+    inset: 0;
+    width: 100% !important;
+    max-height: none;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+  /* The footer sits at the bottom of the full-screen dialog: the hint above, Cancel and Create on one row. */
+  /* The body (3rd child) takes the free height: a picker panel is added after the footer, so :last-child is not the footer. */
+  [role='dialog'].dlg > :nth-child(3) {
+    flex: 1 1 auto;
+  }
+  [role='dialog'].dlg > :nth-child(4) {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .submitHint {
+    flex: 1 0 100%;
+    margin: 0;
+  }
+  .confirmText {
+    flex: 1 0 100%;
+  }
+}
+
+/* LAUN-196: the Updates section. Health is a word as well as a colour. */
+.updates {
+  padding: 8px 16px;
+}
+.updateForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 8px;
+  max-width: 640px;
+}
+.update {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.update:last-child {
+  border-bottom: 0;
+}
+.updateHead {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.updateBody {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.updateHealth {
+  font-weight: 600;
+}
+.updateHealth_on_track {
+  color: var(--accent);
+}
+.updateHealth_at_risk {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+.updateHealth_off_track {
+  color: var(--danger);
+  background: var(--danger-bg);
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+/* LAUN-196: the update reminder schedule form. */
+.scheduleForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.subHead {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* LAUN-194: project label pills in the table and on the project page. */
+.chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* LAUN-194: a long label name or many labels must not widen the table or the page. */
+.labelsCell {
+  max-width: 280px;
+  min-width: 0;
+}
+.labelsCell .chips {
+  display: flex;
+  max-width: 100%;
+}
+.labelRow li {
+  min-width: 0;
+  max-width: 100%;
+}
+.labelRow {
+  max-width: 100%;
+}
+.labelHint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* LAUN-232: the project emoji picker. */
+.emojiGrid {
+  display: grid;
+  grid-template-columns: repeat(8, 36px);
+  gap: 4px;
+}
+.emojiButton {
+  width: 36px;
+  height: 36px;
+  display: inline-grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  cursor: pointer;
+}
+.emojiButton:hover {
+  background: var(--bg-card);
+}
+.emojiButton[aria-pressed='true'] {
+  border-color: var(--accent-solid);
+  background: var(--bg-card);
+}
+.emojiButton[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.6;
+}
+.emojiPaste {
+  display: grid;
+  gap: 4px;
+}
+.emojiInput {
+  width: 8em;
+}
+.emojiCurrent {
+  font-size: 16px;
+}

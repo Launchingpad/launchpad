@@ -1,0 +1,425 @@
+.app {
+  display: flex;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  min-width: 0;
+  /* LAUN-181: the sidebar and the main area are two rounded panels on the page tone, inset by a gap.
+     Below 760px the gap goes and the main area is edge to edge (see the phone block). */
+  padding: 8px;
+  gap: 8px;
+  background: var(--bg-page);
+}
+.sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  overflow-y: auto;
+}
+.main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The card. overflow:hidden clips the children to the rounded corners; the scrolling is in .content. */
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.content {
+  flex: 1;
+  min-height: 0;
+  /* The one scroll area. A page that scrolls itself (list, board, cycle, settings) fits inside
+     and never overflows this; a page that does not (issue detail) scrolls here. LAUN-40. */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  outline: none;
+}
+.topbar {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+.backdrop {
+  display: none;
+}
+.grow {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.orgBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  font-weight: 600;
+}
+.orgBtn:hover {
+  background: var(--surface-hover);
+}
+.actions {
+  display: flex;
+  gap: 6px;
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  min-height: 32px;
+  border-radius: var(--radius);
+  color: var(--text);
+}
+.link:hover {
+  background: var(--surface-hover);
+  text-decoration: none;
+}
+.active {
+  background: var(--selected);
+  font-weight: 600;
+}
+.section {
+  margin: 12px 8px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.key {
+  font: 11px var(--mono);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+  color: var(--muted);
+}
+.settingsSide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+.userRow {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+.conn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  text-align: center;
+  padding: 4px;
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .app {
+    padding: 0;
+    gap: 0;
+  }
+  .main {
+    border: 0;
+    border-radius: 0;
+  }
+  .sidebar {
+    border: 0;
+    border-radius: 0;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 60;
+    width: min(300px, 86vw);
+    transform: translateX(-102%);
+    transition: transform 160ms ease;
+    box-shadow: var(--shadow);
+  }
+  .open {
+    transform: none;
+  }
+  .backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 55;
+  }
+  .topbar {
+    display: flex;
+  }
+}
+.keys {
+  width: 100%;
+  border-collapse: collapse;
+}
+.keys th {
+  text-align: left;
+  width: 120px;
+  padding: 4px 0;
+  font-weight: 400;
+}
+.keys td {
+  padding: 4px 0;
+}
+.badge {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.teamRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.teamRow > a {
+  flex: 1;
+  min-width: 0;
+}
+.teamRow:hover > a {
+  background: var(--surface-hover);
+}
+.teamRowMenu > a {
+  padding-right: 32px;
+}
+.teamName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teamMore {
+  position: absolute;
+  right: 4px;
+  width: 24px;
+}
+.teamMoreBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.teamRow:hover .teamMoreBtn,
+.teamRow:focus-within .teamMoreBtn,
+.teamMoreBtn[aria-expanded='true'] {
+  opacity: 1;
+}
+.teamMoreBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+@media (hover: none) {
+  .teamMoreBtn {
+    opacity: 1;
+  }
+}
+.sub {
+  padding-left: 32px;
+  min-height: 28px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.cycleChildren {
+  margin: 0 0 2px 20px;
+  padding-left: 4px;
+  border-left: 1px solid var(--border);
+}
+.cycleChildren .link {
+  padding-left: 12px;
+  min-height: 28px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cycleChildren .active {
+  color: var(--text);
+}
+
+/* Product groups in the sidebar (LAUN-64). Colours are tokens that already pass in contrast.test.ts. */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.groupRow {
+  display: flex;
+  align-items: stretch;
+}
+.groupOpen {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.groupOpen:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 28px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.groupHead:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+.groupChevron {
+  flex: none;
+}
+.groupClosed {
+  transform: rotate(-90deg);
+}
+.groupMark {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.groupDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.groupName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.groupCount {
+  flex: none;
+  font-weight: 500;
+  color: var(--muted);
+}
+.groupHead:hover .groupCount {
+  color: var(--text);
+}
+/* A finger target in a group: the header, the team rows and the Cycles links are 44px on a phone or a
+   touch screen (the same query as the other pages). */
+@media (max-width: 760px), (pointer: coarse) {
+  .groups .groupHead,
+  .groups .link {
+    min-height: 44px;
+  }
+  .groups .groupOpen {
+    width: 44px;
+    min-height: 44px;
+  }
+  .groups .teamMore {
+    right: 0;
+    width: 44px;
+  }
+  .groups .teamMoreBtn {
+    width: 44px;
+    height: 44px;
+  }
+  .groups .teamRowMenu > a {
+    padding-right: 48px;
+  }
+}
+
+/* LAUN-235 (decisions-T42-themes.md): Paper and Terminal are flat. Above the phone width the sidebar sits on
+   the page tone with one rule to its right and the main area fills the rest (no inset cards). The Linear theme
+   sets no data-look, so none of this applies to it. */
+@media (min-width: 761px) {
+  :global(:root[data-look]) .app {
+    padding: 0;
+    gap: 0;
+  }
+  :global(:root[data-look]) .sidebar {
+    border: 0;
+    border-right: 1px solid var(--border);
+    border-radius: 0;
+  }
+  :global(:root[data-look]) .main {
+    border: 0;
+    border-radius: 0;
+  }
+}
+:global(:root[data-look='paper']) .sidebar {
+  background: var(--bg-page);
+}
+:global(:root[data-look='paper']) .link:hover,
+:global(:root[data-look='paper']) .groupHead:hover,
+:global(:root[data-look='paper']) .groupOpen:hover {
+  background: var(--page-hover);
+}
+:global(:root[data-look='paper']) .section {
+  font: italic 600 13px var(--font-heading);
+  text-transform: none;
+  letter-spacing: 0;
+}
+/* Terminal: "## teams" section heads and an amber ">" cursor on the current page. The marks are decoration:
+   the alt text after "/" is empty, so a screen reader reads the link name only. */
+:global(:root[data-look='terminal']) .section {
+  text-transform: lowercase;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+:global(:root[data-look='terminal']) .section::before {
+  content: '## ';
+  content: '## ' / '';
+  color: var(--muted);
+}
+:global(:root[data-look='terminal']) .active {
+  color: var(--accent);
+}
+:global(:root[data-look='terminal']) .active::before {
+  content: '>';
+  content: '>' / '';
+  flex: none;
+  margin-left: -4px;
+}

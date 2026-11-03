@@ -1,0 +1,905 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--on-accent);
+}
+.primary:hover:not(:disabled) {
+  background: var(--accent-solid);
+  filter: brightness(1.1);
+}
+.danger {
+  color: var(--danger);
+}
+.dangerSolid,
+.dangerSolid:hover:not(:disabled) {
+  /* A confirm that destroys something (LAUN-201). bg on danger is a checked pair in contrast.test.ts, both themes. */
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--bg);
+  font-weight: 600;
+}
+.dangerSolid:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.ghost {
+  background: transparent;
+  border-color: transparent;
+}
+.icon {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+.textarea {
+  resize: vertical;
+  min-height: 90px;
+  line-height: 1.5;
+}
+.field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.field > label,
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8vh 12px 12px;
+  z-index: 50;
+  overflow-y: auto;
+}
+.dialog {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  width: min(640px, 100%);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  animation: pop 120ms ease-out;
+  position: relative;
+}
+.dialogHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.dialogBody {
+  padding: 16px;
+  overflow-y: auto;
+}
+.dialogFoot {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.dialogPlain > .dialogHead {
+  border-bottom: 0;
+  padding: 16px 20px 4px;
+}
+.dialogPlain > .dialogBody {
+  padding: 8px 20px 12px;
+}
+.dialogPlain > .dialogFoot {
+  border-top: 0;
+  padding: 8px 20px 16px;
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.99);
+  }
+}
+.popWrap {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+}
+.panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-width: min(320px, 92vw);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+}
+.panelRight {
+  left: auto;
+  right: 0;
+}
+.panelUp {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+.pickerSearch {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 8px 8px;
+  background: transparent;
+  outline: none;
+}
+.options {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  min-height: 32px;
+}
+/* LAUN-118: a chosen option shows only its tick. No background for aria-selected; hover and the keyboard-active row (.optionActive) keep theirs. */
+.option:hover {
+  background: var(--surface-hover);
+}
+/* A menu row is a button: no inline style, so hover and focus tints win (LAUN-41). */
+.menuRow {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+/* Menu rows (LAUN-41): a quiet focus mark, the selected tint and a thin inset ring, not the 2px box. */
+.panel [role='menuitem']:focus-visible {
+  outline: 1px solid var(--focus);
+  outline-offset: -1px;
+  background: var(--selected);
+}
+.optionActive {
+  background: var(--selected);
+}
+.optionText {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Menu rows (LAUN-41): the name keeps at least 8ch; the detail (a date) keeps its full width, so the name ellipsizes first. */
+.menuText {
+  flex: 1 1 auto;
+  min-width: 8ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A row that cannot be used (LAUN-172): dimmed, with its reason as a second line. */
+.menuDisabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.menuDisabled:hover {
+  background: transparent;
+}
+/* One line: the panel is wide enough (cycles.module.css) and a longer text ends in an ellipsis. */
+.menuReason {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* A disabled form control looks disabled, not only explained by a sentence (LAUN-172). */
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--surface);
+}
+.menuDetail {
+  flex: none;
+  white-space: nowrap;
+  text-align: right;
+}
+.menuKey {
+  flex: none;
+  white-space: nowrap;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+/* A hint that may be long (a product's team keys): it shrinks and cuts, the name keeps room. */
+.optionHint {
+  flex: 0 1 45%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12px;
+}
+.avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a1a1f;
+  flex: none;
+}
+.center {
+  display: grid;
+  place-items: center;
+  padding: 48px 16px;
+  text-align: center;
+  gap: 10px;
+  color: var(--muted);
+}
+.spinner {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-solid);
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.skeleton {
+  height: 36px;
+  margin: 6px 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface), var(--surface-hover), var(--surface));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+.banner {
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.alertStack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.alertStack > * {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.alertStack:empty {
+  display: none;
+}
+.errorBanner {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.toasts {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  gap: 8px;
+  z-index: 80;
+  max-width: calc(100vw - 24px);
+}
+.toast {
+  background: var(--text);
+  color: var(--bg);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.toast a,
+.toast button {
+  color: inherit;
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.toastError {
+  background: var(--danger);
+  color: var(--bg);
+}
+/* LAUN-230: rendered markdown never gets wider than its box. Long words and URLs wrap; a code block and a table
+   scroll inside themselves; an image shrinks. The parent grid must also name a `minmax(0, 1fr)` column. */
+.md {
+  overflow-wrap: anywhere;
+  line-height: 1.55;
+  min-width: 0;
+  max-width: 100%;
+}
+.md > :first-child {
+  margin-top: 0;
+}
+.md > :last-child {
+  margin-bottom: 0;
+}
+.md :global(.contains-task-list) {
+  padding-left: 4px;
+}
+.md :global(.contains-task-list) > li:not(:global(.task-list-item)) {
+  list-style: disc inside;
+}
+.md :global(.contains-task-list) :global(.contains-task-list) {
+  padding-left: 24px;
+}
+.md :global(.task-list-item) {
+  list-style: none;
+}
+.md :global(.task-list-item):has(> .mdTaskHit > .mdTask:checked),
+.md :global(.task-list-item):has(> p > .mdTaskHit > .mdTask:checked) {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.md :global(.task-list-item) :global(ul),
+.md :global(.task-list-item) :global(ol) {
+  /* an inline-block does not inherit the strike-through of its checked parent */
+  display: inline-block;
+  width: 100%;
+  color: var(--text);
+}
+.mdTaskHit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin: -4px 2px -4px -4px;
+  vertical-align: middle;
+}
+.mdTask {
+  margin: 0;
+  width: 15px;
+  height: 15px;
+  accent-color: var(--accent-solid);
+}
+.mdTask:not(:disabled) {
+  cursor: pointer;
+}
+.md pre {
+  background: var(--surface);
+  padding: 10px;
+  border-radius: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.md code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  background: var(--surface);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+.md pre code {
+  padding: 0;
+  background: none;
+}
+.md img {
+  max-width: 100%;
+  height: auto;
+}
+.md blockquote {
+  margin: 8px 0;
+  padding-left: 12px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+.md table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.md th,
+.md td {
+  border: 1px solid var(--border);
+  padding: 4px 8px;
+}
+
+/* ---- Chip pickers and the floating panel ---- */
+.chipBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  max-width: 100%;
+  padding: 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chipBtn > span:not(.dot):not(.avatar) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chipBtn:hover:not(:disabled),
+.chipBtn[aria-expanded='true'] {
+  background: var(--surface-hover);
+}
+.chipBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.chipUnset {
+  color: var(--muted);
+}
+.chipStatic {
+  cursor: default;
+}
+.chipStatic:hover {
+  background: transparent;
+}
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.floatPanel {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 6px;
+  overflow: hidden;
+}
+.floatPanel > div {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.floatPanel .options {
+  flex: 1;
+  min-height: 0;
+}
+.pickerSearchWrap {
+  position: relative;
+}
+.pickerSearchHint {
+  padding-right: 34px;
+}
+.pickerKey {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  font-family: var(--font);
+  font-size: 11px;
+  text-align: center;
+}
+.moreForm {
+  display: grid;
+  gap: 10px;
+  padding: 4px;
+}
+.moreForm .field {
+  margin: 0;
+}
+/* The create dialog: a big borderless title and description, then the chip row. */
+.createTitle,
+.createDesc {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  padding: 4px 0;
+}
+.createTitle {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  resize: none;
+  field-sizing: content;
+  min-height: 1.3em;
+  max-height: 30vh;
+  font-family: inherit;
+}
+.createDesc {
+  font-size: 14px;
+  line-height: 1.5;
+  min-height: 96px;
+  max-height: 40vh;
+  resize: none;
+  field-sizing: content;
+}
+.createTitle::placeholder,
+.createDesc::placeholder {
+  color: var(--muted);
+}
+/* No focus box (LAUN-19): like Linear, the caret shows where the focus is. */
+/* T20 #73: the create dialog's no-team line, above the form. */
+.createNoTeam {
+  margin-bottom: 12px;
+}
+.createHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+.createHeadTitle {
+  font-size: 14px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 0;
+}
+.createFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.switchBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.switchTrack {
+  position: relative;
+  width: 30px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--border);
+  flex: none;
+  transition: background 120ms;
+}
+.switchTrack::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--muted);
+  transition: transform 120ms;
+}
+.switchBtn[aria-checked='true'] .switchTrack {
+  background: var(--accent-solid);
+}
+.switchBtn[aria-checked='true'] .switchTrack::after {
+  transform: translateX(12px);
+  box-shadow: none;
+}
+.createHead > .chipBtn {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+/* LAUN-19: rounder, quieter chips and the footer of the create dialog. */
+.createChips {
+  gap: 8px;
+  margin-top: 12px;
+}
+.createChips .chipBtn,
+.createHead > .chipBtn {
+  border-radius: 999px;
+  border-color: var(--border);
+  font-size: 13px;
+  padding: 2px 12px;
+  color: var(--muted);
+}
+.createChips .chipBtn:not(.chipUnset) {
+  color: var(--text);
+}
+.createTeam {
+  font-weight: 500;
+}
+.createFoot {
+  gap: 8px;
+}
+.createFootEnd {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.attachBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.attachBtn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.attachList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.attachItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 4px 2px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--text);
+}
+.attachItem > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.attachRemove {
+  display: inline-flex;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 50%;
+  padding: 2px;
+  cursor: pointer;
+}
+.moreRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.moreRow:hover {
+  background: var(--surface-hover);
+}
+
+/* ---- Multi-select pickers like Linear's label picker (LAUN-53) ---- */
+.sectionHead {
+  padding: 10px 10px 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: default;
+}
+.sectionHead:first-child {
+  padding-top: 6px;
+}
+.optionMulti {
+  gap: 10px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+/* The box shows on the focused row and on a ticked one; its space is always kept, so rows never shift. */
+.checkBox {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  opacity: 0;
+}
+.optionActive .checkBox,
+.optionMulti:hover .checkBox,
+.checkOn {
+  opacity: 1;
+}
+.checkOn {
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: var(--on-accent);
+}
+.floatPanel:has(.optionMulti) {
+  border-radius: 12px;
+  padding: 8px;
+}
+@media (max-width: 640px) {
+  .optionMulti {
+    min-height: 40px;
+  }
+}
+
+/* File drop zones (LAUN-58, LAUN-105): the overlay fills its zone (a positioned, non-scrolling host), a soft
+   tint, a dashed edge and a centred message. No pointer events. */
+.dropOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  border: 2px dashed var(--accent, #5e6ad2);
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--accent, #5e6ad2) 10%, transparent);
+  pointer-events: none;
+}
+.dropLabel {
+  max-width: 100%;
+  padding: 14px 24px;
+  border-radius: var(--radius);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  font-size: 16px;
+  color: var(--text);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+/* The issue page: the pane that holds the scroller, so the overlay covers the whole pane. */
+.dropPane {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* LAUN-22: the avatar of an org or a project (ui/Logo.tsx). Tokens only. */
+.logo {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  overflow: hidden;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+}
+.logo:has(.logoImg),
+.logo[data-logo='emoji'] {
+  background: var(--bg-card);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.logoImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* LAUN-235: the Terminal theme's state tag ([WIP ], [DONE]). Fixed width: four characters and the brackets. */
+.stateTag {
+  flex: none;
+  display: inline-block;
+  font: 700 12px/1 var(--mono);
+  white-space: pre;
+}
+/* LAUN-235: Terminal buttons read "[ label ]". Icon-only and borderless (ghost) buttons keep their look. The
+   brackets are decoration (empty alt text after "/"): the accessible name is the label alone. */
+:global(:root[data-look='terminal']) .btn:not(.icon):not(.ghost)::before {
+  content: '[';
+  content: '[' / '';
+}
+:global(:root[data-look='terminal']) .btn:not(.icon):not(.ghost)::after {
+  content: ']';
+  content: ']' / '';
+}
+:global(:root[data-look='terminal']) .btn {
+  font-weight: 700;
+}
+/* LAUN-235: Paper and Terminal draw controls with the strong control border (3:1 on the page). */
+:global(:root[data-look]) .input,
+:global(:root[data-look]) .select,
+:global(:root[data-look]) .textarea {
+  border-color: var(--border-strong);
+}
+:global(:root[data-look]) .btn:not(.primary):not(.ghost):not(.dangerSolid) {
+  border-color: var(--border-strong);
+  background: transparent;
+}
+:global(:root[data-look]) .btn:not(.primary):not(.ghost):not(.dangerSolid):hover:not(:disabled) {
+  background: var(--surface-hover);
+}

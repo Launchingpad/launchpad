@@ -1,0 +1,170 @@
+/* LAUN-235 (decisions-T42-themes.md): Settings > Appearance. */
+.themes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 210px), 1fr));
+  gap: 12px;
+}
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  cursor: pointer;
+}
+.option:hover {
+  background: var(--surface-hover);
+}
+.checked,
+.checked:hover {
+  border-color: var(--accent-solid);
+  box-shadow: inset 0 0 0 1px var(--accent-solid);
+}
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.choice input {
+  margin: 0;
+  accent-color: var(--accent-solid);
+}
+.name {
+  font-weight: 600;
+}
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--danger);
+}
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+.variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.variant input {
+  margin: 0;
+  accent-color: var(--accent-solid);
+}
+
+/* The preview: a sidebar strip and three rows, drawn with the previewed theme's own tokens. */
+.preview {
+  display: flex;
+  height: 112px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: 12px/1.3 var(--font);
+  pointer-events: none;
+}
+.pvSide {
+  flex: 0 0 26%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 6px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+}
+.preview[data-preview='paper'] .pvSide {
+  background: var(--bg-page);
+}
+.pvNav {
+  height: 7px;
+  border-radius: 2px;
+  background: var(--border);
+}
+.pvNavOn {
+  background: var(--selected);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.pvMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pvHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+}
+.pvTitle {
+  font: 600 14px/1.2 var(--font-heading);
+}
+.preview[data-preview='terminal'] .pvTitle {
+  font-weight: 700;
+}
+.pvBtn {
+  padding: 1px 7px;
+  border-radius: var(--radius);
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+.preview[data-preview='terminal'] .pvBtn::before {
+  content: '[ ';
+  content: '[ ' / '';
+}
+.preview[data-preview='terminal'] .pvBtn::after {
+  content: ' ]';
+  content: ' ]' / '';
+}
+.pvRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 8px;
+  height: 24px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.preview[data-preview='paper'] .pvRow {
+  height: 26px;
+}
+.preview[data-preview='terminal'] .pvRow {
+  height: 20px;
+}
+.pvRowOn {
+  background: var(--selected);
+}
+.pvRow > :first-child {
+  font-size: 10px;
+}
+.pvIdent {
+  flex: none;
+  font: 10px var(--mono);
+  color: var(--muted);
+}
+.pvText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.preview[data-preview='terminal'] .pvRow,
+.preview[data-preview='terminal'] .pvHead,
+.preview[data-preview='terminal'] .pvBtn,
+.preview[data-preview='terminal'] .pvNav {
+  border-radius: 0;
+}

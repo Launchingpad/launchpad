@@ -1,0 +1,147 @@
+@import './tokens.css';
+/* LAUN-235: after tokens.css (the theme blocks must come later; see themes.css). */
+@import './themes.css';
+@import './fonts.css';
+@import './themeRules.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+html,
+body,
+#root {
+  height: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.45 var(--font);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+/* LAUN-60: only inline prose links underline on hover (their non-colour cue): an anchor with no
+   class, and .textLink (markdown, activity). Any link with a class is a row, card, button or nav
+   link: its hover cue is a background or colour, never an underline. */
+a:not([class]):hover,
+a.textLink:hover {
+  text-decoration: underline;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+/* Text fields (LAUN-57): no blue ring. The caret shows where the person types; the border turns a
+   quiet neutral (--field-focus-border). This is the ONE rule: it is more specific than any module
+   class, so no component needs its own. An invalid field turns red while focused; disabled ones
+   are left alone. Buttons, links, checkboxes, switches and rows keep the ring above. A wrapper that
+   draws a field's border (a search box) sets border-color on :focus-within, never an outline. */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not(
+    [type='submit']
+  ):not([type='reset']):not([type='file']):not([type='color']):not([type='image']):focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[contenteditable]:not([contenteditable='false']):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not(
+    [type='submit']
+  ):not([type='reset']):not([type='file']):not([type='color']):not([type='image']):not(
+    [aria-invalid='true']
+  ):not(:disabled):focus-visible,
+textarea:not([aria-invalid='true']):not(:disabled):focus-visible,
+select:not([aria-invalid='true']):not(:disabled):focus-visible {
+  border-color: var(--field-focus-border);
+}
+/* A contenteditable has no border of its own, so it gets a quiet neutral hairline (not blue). */
+[contenteditable]:not([contenteditable='false']):focus-visible {
+  border-color: var(--field-focus-border);
+  box-shadow: inset 0 0 0 1px var(--field-focus-border);
+}
+input[aria-invalid='true']:focus-visible,
+textarea[aria-invalid='true']:focus-visible,
+select[aria-invalid='true']:focus-visible {
+  border-color: var(--danger);
+}
+/* Forced colors (Windows high contrast) drops our colours and outline:none would hide the focus
+   completely: give text fields a system-colour outline there. */
+@media (forced-colors: active) {
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [contenteditable]:focus-visible {
+    /* !important: the text-field rule above has a far more specific selector and would win. */
+    outline: 2px solid Highlight !important;
+    outline-offset: 1px;
+  }
+}
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+.sr-only {
+  /* fixed, not absolute: an absolute one with no positioned ancestor sits at its static position
+     inside a scroll area and stretches the PAGE scroll height (a second scrollbar). LAUN-40. */
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  z-index: 100;
+}
+.skip-link:focus {
+  top: 8px;
+}
+kbd {
+  font: 12px var(--mono);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 5px;
+  min-width: 20px;
+  display: inline-block;
+  text-align: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

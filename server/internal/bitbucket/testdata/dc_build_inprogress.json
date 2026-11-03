@@ -1,0 +1,39 @@
+{
+  "eventKey": "repo:build_status",
+  "date": "2026-10-26T10:30:00+0000",
+  "actor": {
+    "name": "example-dev",
+    "emailAddress": "example-dev@example.test",
+    "id": 7,
+    "displayName": "Example Dev",
+    "active": true,
+    "slug": "example-dev",
+    "type": "NORMAL"
+  },
+  "repository": {
+    "slug": "example-app",
+    "id": 4242,
+    "name": "example-app",
+    "scmId": "git",
+    "state": "AVAILABLE",
+    "statusMessage": "Available",
+    "forkable": true,
+    "project": {
+      "key": "PROJ",
+      "id": 84,
+      "name": "Project",
+      "public": false,
+      "type": "NORMAL"
+    },
+    "public": false
+  },
+  "commit": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567",
+  "buildStatus": {
+    "key": "ci-main",
+    "name": "CI main",
+    "state": "INPROGRESS",
+    "description": "Build",
+    "url": "https://ci.example.test/builds/1",
+    "dateAdded": 1793010000000
+  }
+}

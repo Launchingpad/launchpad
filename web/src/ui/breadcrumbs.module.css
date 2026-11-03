@@ -1,0 +1,71 @@
+/* LAUN-157: the breadcrumb trail. Colours are tokens only, so dark mode follows. */
+.nav {
+  min-width: 0;
+  max-width: 100%;
+}
+.list {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+.item {
+  display: flex;
+  align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+/* The current item gives up space last. */
+.item.last {
+  flex: 1 1 auto;
+  color: var(--text);
+}
+.sep {
+  flex: none;
+  padding: 0 6px;
+  color: var(--muted);
+  user-select: none;
+}
+.gap {
+  display: none;
+}
+.text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link {
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.link:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  text-decoration: none;
+}
+/* Focus: the global :focus-visible ring applies (styles/global.css). */
+.current {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+@media (max-width: 520px) {
+  .item.hideSmall {
+    display: none;
+  }
+  /* The "…" shows in the separator of the first visible item when earlier items are hidden. */
+  .gap {
+    display: inline;
+  }
+}

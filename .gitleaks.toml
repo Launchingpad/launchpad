@@ -1,0 +1,45 @@
+# gitleaks config for the public tree (scripts/audit-public.sh --gitleaks).
+# The default rules stay on for EVERY file, test files too. Only the known fake
+# values below are allowed: they are invented markers that the tests look for in
+# logs and responses (none is a credential). A test that plants a new fake secret
+# adds its value here. A real secret in any file, a test included, is a finding.
+# scripts/audit-public.sh also scans test files for more token shapes.
+title = "launchpad"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "known fake values planted by tests"
+# regexes match the matched secret text, not the path.
+regexes = [
+  '''glpat-planted-token-value''',
+  '''planted-s3-secret-key-7f3a91''',
+  '''planted-unsaved-test-secret-88de52''',
+  '''lin_api_(APITESTKEY|TESTKEY|SECRETKEY)_?0123456789''',
+  '''ghwh-(test|second)-secret-''',
+  '''glwh-test-secret-''',
+  '''bbwh-(test|second)-secret-''',
+  '''acme-(gl-)?secret-0123456789''',
+  '''other-instance-secret-0123456789''',
+  '''a0b1c2d3-e4f5-4678-9abc-def012345678''',
+  '''DxotPEtaaXiHlqW0w9Lh8A8eLTxLWml4h5altMPS4fA=''',
+  '''tok-SECRET-0123456789''',
+  '''SECRETSIGNATURE123''',
+  '''odt_TESTSECRETtestsecret0123456789''',
+  '''TOPSECRETBODY-[0-9]+''',
+  '''AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-''',
+]
+
+# The fake relay secret of the mobile push route test, allowed in that ONE file
+# only (path AND value). A rule-level allowlist on the default generic-api-key
+# rule: gitleaks v8.24 has no global [[allowlists]] table, and the [allowlist]
+# table above would let the path alone pass. The same value in another file,
+# or another value in that file, is still a finding (scripts/test-audit.sh).
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "fake relay secret of push_integration_test.go"
+condition = "AND"
+paths = ['''(^|/)server/internal/api/push_integration_test\.go$''']
+regexes = ['''^APIRELAYSECRET-8842$''']

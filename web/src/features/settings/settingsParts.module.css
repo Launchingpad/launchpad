@@ -1,0 +1,180 @@
+/* Linear-style settings parts (LAUN-26): quiet gray page, rounded cards, rows split by thin lines. */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  min-width: 0;
+}
+.wide {
+  max-width: 980px;
+}
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  outline: none;
+}
+.title:focus-visible {
+  outline: none;
+}
+.lead {
+  margin: -8px 0 16px;
+  color: var(--muted);
+  max-width: 60ch;
+}
+.section {
+  margin-top: 28px;
+}
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+.sectionHint {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 64ch;
+}
+.card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 10px;
+  overflow-x: auto;
+}
+.card > table {
+  min-width: 680px;
+  margin: 0;
+  max-width: none;
+}
+.padded {
+  padding: 16px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  min-height: 56px;
+}
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+.rowLink {
+  color: var(--text);
+}
+.rowLink:hover {
+  background: var(--surface);
+  text-decoration: none;
+}
+.rowText {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.rowLabel {
+  font-weight: 500;
+}
+.rowHint {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.control {
+  flex: none;
+  max-width: 55%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: right;
+}
+.go {
+  transform: rotate(-90deg);
+  color: var(--muted);
+  flex: none;
+}
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--border);
+  cursor: pointer;
+  transition: background 120ms;
+}
+.toggle.on {
+  background: var(--accent-solid);
+}
+.toggle:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--knob);
+  transition: transform 120ms;
+}
+.on .knob {
+  transform: translateX(16px);
+}
+@media (max-width: 760px) {
+  .page {
+    padding: 20px 16px 48px;
+  }
+  .row {
+    flex-wrap: wrap;
+  }
+  .control {
+    max-width: 100%;
+    text-align: left;
+  }
+}
+
+/* LAUN-235 (decisions-T42-themes.md). Paper: an outlined track when off (the strong control border, 3:1),
+   the accent when on. Terminal: the switch reads as a check box, "[x]" or "[ ]". The element stays the
+   role="switch" button with aria-checked; the marks are decoration (empty alt text after "/"). */
+:global(:root[data-look='paper']) .toggle {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+:global(:root[data-look='paper']) .toggle .knob {
+  background: var(--border-strong);
+}
+:global(:root[data-look='paper']) .toggle.on {
+  background: var(--accent-solid);
+  box-shadow: none;
+}
+:global(:root[data-look='paper']) .toggle.on .knob {
+  background: var(--knob);
+}
+:global(:root[data-look='terminal']) .toggle {
+  width: auto;
+  height: auto;
+  min-height: 20px;
+  background: transparent;
+  font: 400 13px/20px var(--mono);
+  color: var(--muted);
+  white-space: pre;
+}
+:global(:root[data-look='terminal']) .toggle::before {
+  content: '[ ]';
+  content: '[ ]' / '';
+}
+:global(:root[data-look='terminal']) .toggle.on {
+  color: var(--accent);
+}
+:global(:root[data-look='terminal']) .toggle.on::before {
+  content: '[x]';
+  content: '[x]' / '';
+}
+:global(:root[data-look='terminal']) .toggle .knob {
+  display: none;
+}

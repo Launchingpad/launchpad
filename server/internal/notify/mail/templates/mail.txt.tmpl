@@ -1,0 +1,16 @@
+{{.Identifier}}: {{.Title}}
+Team: {{.TeamKey}}
+State: {{.StateName}}
+
+{{range .Lines}}- {{.}}
+{{end}}{{range .Excerpts}}
+> {{.}}
+{{end}}
+Open the issue: {{.IssueURL}}
+{{if .More}}
+{{.More}}
+{{end}}
+--
+You get this email because {{.Why}}.
+Notification settings: {{.SettingsURL}}
+Stop this kind of email: {{.UnsubscribeURL}}

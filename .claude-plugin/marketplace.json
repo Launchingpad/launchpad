@@ -1,0 +1,14 @@
+{
+  "name": "launchpad-mcp",
+  "description": "Launchpad issue tracker tools for Claude Code",
+  "owner": {
+    "name": "Launchpad"
+  },
+  "plugins": [
+    {
+      "name": "launchpad",
+      "source": "./plugins/launchpad",
+      "description": "Launchpad MCP server (issues, comments, documents, attachments) and a skill for agents"
+    }
+  ]
+}

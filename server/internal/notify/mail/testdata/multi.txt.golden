@@ -1,0 +1,18 @@
+LAUN-34: Notifications 4/9: email
+Team: LAUN
+State: In Progress
+
+- State changed: Todo to In Review (Claude)
+- New comment (Claude)
+- Chen mentioned you
+
+> Looks good <b>to</b> me second line
+
+Open the issue: https://launchpad.example.com/orb/issue/LAUN-34
+
+3 more updates were not emailed. See your inbox.
+
+--
+You get this email because you were mentioned.
+Notification settings: https://launchpad.example.com/orb/settings/notifications
+Stop this kind of email: https://launchpad.example.com/unsubscribe/TOKEN

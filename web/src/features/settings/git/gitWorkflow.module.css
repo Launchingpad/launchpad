@@ -1,0 +1,22 @@
+/* LAUN-244: the Git workflow page. A picker per event (one width, so the column lines up; a phone wraps the
+   row); a footer with the preview and the buttons. */
+.picker {
+  width: 220px;
+  max-width: 100%;
+}
+.note {
+  color: var(--muted);
+}
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+}
+.preview {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}

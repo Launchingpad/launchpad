@@ -1,0 +1,67 @@
+name: Bug report
+description: Something does not work as the docs say.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for the report. Do not report a security problem here.
+        Use the private Security tab of this repository instead.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Say what you saw. One or two sentences.
+      placeholder: "The issue list shows an empty page after I filter by label."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      placeholder: "The list shows the issues that have the label."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Short numbered steps. Use example values only.
+      placeholder: |
+        1. Open Issues.
+        2. Choose the label "bug".
+        3. See the empty page.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: "The commit hash (git rev-parse --short HEAD) or the image tag."
+      placeholder: "a1b2c3d"
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: How it is deployed
+      options:
+        - Dev compose (server/docker-compose.yml)
+        - deploy/deploy.sh
+        - My own compose file or other
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: Browser or MCP client
+      description: Name and version.
+      placeholder: "Firefox 140, or the MCP client name and version"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        WARNING: remove tokens, setup links, login codes, email addresses and
+        host names before you paste. Replace them with example values.
+      render: text

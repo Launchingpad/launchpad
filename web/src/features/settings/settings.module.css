@@ -1,0 +1,229 @@
+.layout {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  /* LAUN-181: transparent, so it sits on the shell's --bg card; the .card boxes inside have a border. */
+}
+.subtitle {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 12px;
+}
+.facts {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table th,
+.table td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  overflow-wrap: anywhere;
+}
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 12px;
+}
+.tag {
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.form {
+  max-width: 520px;
+  margin-top: 28px;
+}
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: 0 12px;
+  align-items: start;
+}
+.fieldError {
+  color: var(--danger);
+  font-size: 12px;
+}
+.actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+@media (max-width: 760px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.wide {
+  max-width: 960px;
+}
+.num {
+  max-width: 120px;
+}
+.radios {
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+  min-width: 0;
+}
+.radios legend {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 0;
+  margin-bottom: 4px;
+}
+.radios label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 28px;
+}
+/* T20 #75: the team checklist under "Selected teams", indented under its radio. */
+.teamChecks {
+  display: grid;
+  margin: 4px 0 4px 24px;
+}
+.next {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.tokenBox {
+  display: block;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: 13px var(--mono);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.confirm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 12px 0;
+}
+.envBox {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: 12px var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.secretRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.statusBox {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.radioFull {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  min-height: 28px;
+  padding: 2px 0;
+}
+.section {
+  margin-top: 32px;
+}
+.reasonBox {
+  width: 100%;
+  min-height: 72px;
+}
+.noteText {
+  margin: 4px 0 0;
+  max-width: 48ch;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.flag {
+  display: inline-block;
+  margin-top: 4px;
+  white-space: nowrap;
+  padding: 0 6px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  font-size: 11px;
+  color: var(--danger);
+}
+/* Wide tables scroll inside their own box on a narrow screen; they do not clip or squeeze. */
+.tableScroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.tableScroll > table {
+  min-width: 640px;
+}
+.nowrap {
+  white-space: nowrap;
+}
+.switchCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+/* Three short columns: the card's 680px minimum would hide the Cycles switch off screen on a phone. The doubled
+   class beats `.card > table` in settingsParts.module.css. */
+.fitTable.fitTable {
+  min-width: 0;
+}
+/* Team access counts (LAUN-227): long labels wrap; on a narrow screen each value goes under its label. */
+.factsWrap {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.factsWrap dt {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 480px) {
+  .factsWrap {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+  .factsWrap dd {
+    margin-bottom: 8px;
+  }
+}
+.previewTitle {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 16px 0 8px;
+}

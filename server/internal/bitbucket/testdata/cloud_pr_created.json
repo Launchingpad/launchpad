@@ -1,0 +1,99 @@
+{
+  "actor": {
+    "type": "user",
+    "display_name": "Example Dev",
+    "nickname": "example-dev",
+    "uuid": "{00000000-0000-0000-0000-000000000001}"
+  },
+  "pullrequest": {
+    "type": "pullrequest",
+    "id": 17,
+    "title": "LAUN-84 fix login redirect",
+    "description": "Fixes the redirect after login.",
+    "state": "OPEN",
+    "author": {
+      "type": "user",
+      "display_name": "Example Dev",
+      "nickname": "example-dev",
+      "account_id": "557058:00000000-0000-0000-0000-000000000001",
+      "uuid": "{00000000-0000-0000-0000-000000000001}"
+    },
+    "source": {
+      "branch": {
+        "name": "chen/laun-84-fix-login-redirect"
+      },
+      "commit": {
+        "hash": "0a1b2c3d4e5f60718293a4b5c6d7e8f901234567"
+      },
+      "repository": {
+        "type": "repository",
+        "uuid": "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+        "name": "example-app",
+        "full_name": "example-org/example-app",
+        "is_private": true,
+        "workspace": {
+          "type": "workspace",
+          "uuid": "{11111111-2222-3333-4444-555555555555}",
+          "slug": "example-org",
+          "name": "Orbit Example"
+        },
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/example-org/example-app"
+          }
+        }
+      }
+    },
+    "destination": {
+      "branch": {
+        "name": "develop"
+      },
+      "commit": {
+        "hash": "1111111111111111111111111111111111111111"
+      },
+      "repository": {
+        "type": "repository",
+        "uuid": "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+        "name": "example-app",
+        "full_name": "example-org/example-app",
+        "is_private": true,
+        "workspace": {
+          "type": "workspace",
+          "uuid": "{11111111-2222-3333-4444-555555555555}",
+          "slug": "example-org",
+          "name": "Orbit Example"
+        },
+        "links": {
+          "html": {
+            "href": "https://bitbucket.org/example-org/example-app"
+          }
+        }
+      }
+    },
+    "created_on": "2026-10-26T10:00:00.000000+00:00",
+    "updated_on": "2026-10-26T10:15:30.123456+00:00",
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/example-org/example-app/pull-requests/17"
+      }
+    }
+  },
+  "repository": {
+    "type": "repository",
+    "uuid": "{aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee}",
+    "name": "example-app",
+    "full_name": "example-org/example-app",
+    "is_private": true,
+    "workspace": {
+      "type": "workspace",
+      "uuid": "{11111111-2222-3333-4444-555555555555}",
+      "slug": "example-org",
+      "name": "Orbit Example"
+    },
+    "links": {
+      "html": {
+        "href": "https://bitbucket.org/example-org/example-app"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security problem (private)
+    url: https://github.com/kraetos10/launchpad/security/advisories/new
+    about: Do not open a public issue for a vulnerability. Use GitHub private vulnerability reporting (Security tab, "Report a vulnerability").
+  - name: Read the docs
+    url: https://github.com/kraetos10/launchpad/tree/master/docs
+    about: Quickstart, self-hosting, configuration and deploy guides.

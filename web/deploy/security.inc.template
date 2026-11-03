@@ -1,0 +1,12 @@
+# Included by every location, because add_header in a location hides the
+# server-level ones. Rendered by envsubst: API_ORIGIN and FILES_ORIGIN only
+# matter in the CSP. FILES_ORIGIN is the attachment store (silo): the browser
+# PUTs uploads to it (connect-src) and the download redirect lands on it
+# (img-src, media-src: an mp4 plays inline, LAUN-107). Both are empty when unused.
+add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: ${API_ORIGIN} ${FILES_ORIGIN}; media-src 'self' ${API_ORIGIN} ${FILES_ORIGIN}; font-src 'self'; connect-src 'self' ${API_ORIGIN} ${FILES_ORIGIN}; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'; manifest-src 'self'" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-Frame-Options "DENY" always;
+add_header Referrer-Policy "no-referrer" always;
+add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()" always;
+add_header Cross-Origin-Opener-Policy "same-origin" always;
+add_header Strict-Transport-Security "max-age=31536000" always;

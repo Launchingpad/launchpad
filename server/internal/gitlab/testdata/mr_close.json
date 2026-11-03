@@ -1,0 +1,131 @@
+{
+  "object_kind": "merge_request",
+  "event_type": "merge_request",
+  "user": {
+    "id": 7,
+    "name": "Example Dev",
+    "username": "exampledev",
+    "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/7/avatar.png",
+    "email": "[REDACTED]"
+  },
+  "project": {
+    "id": 42,
+    "name": "example-app",
+    "description": "Example backend",
+    "web_url": "https://gitlab.example.com/example-org/example-app",
+    "avatar_url": null,
+    "git_ssh_url": "git@gitlab.example.com:example-org/example-app.git",
+    "git_http_url": "https://gitlab.example.com/example-org/example-app.git",
+    "namespace": "orbit",
+    "visibility_level": 0,
+    "path_with_namespace": "example-org/example-app",
+    "default_branch": "develop",
+    "ci_config_path": "",
+    "homepage": "https://gitlab.example.com/example-org/example-app",
+    "url": "git@gitlab.example.com:example-org/example-app.git",
+    "ssh_url": "git@gitlab.example.com:example-org/example-app.git",
+    "http_url": "https://gitlab.example.com/example-org/example-app.git"
+  },
+  "object_attributes": {
+    "assignee_id": 7,
+    "author_id": 7,
+    "created_at": "2026-10-24 09:12:03 UTC",
+    "description": "Fixes the redirect after login.\n\nRefs ORB-2 for the copy change. Tested on UTF-8 and ASCII input.",
+    "draft": false,
+    "head_pipeline_id": null,
+    "id": 9001,
+    "iid": 17,
+    "last_edited_at": null,
+    "last_edited_by_id": null,
+    "merge_commit_sha": null,
+    "merge_error": null,
+    "merge_params": {
+      "force_remove_source_branch": "1"
+    },
+    "merge_status": "preparing",
+    "merge_user_id": null,
+    "merge_when_pipeline_succeeds": false,
+    "milestone_id": null,
+    "source_branch": "chen/orb-1-fix-login-redirect",
+    "source_project_id": 42,
+    "state_id": 2,
+    "target_branch": "develop",
+    "target_project_id": 42,
+    "time_estimate": 0,
+    "title": "ORB-1: Fix login redirect",
+    "updated_at": "2026-10-24 13:05:00 UTC",
+    "updated_by_id": null,
+    "prepared_at": null,
+    "assignee_ids": [
+      7
+    ],
+    "blocking_discussions_resolved": true,
+    "detailed_merge_status": "not_open",
+    "first_contribution": false,
+    "human_time_change": null,
+    "human_time_estimate": null,
+    "human_total_time_spent": null,
+    "labels": [],
+    "last_commit": {
+      "id": "3f2a9c1e5b7d4a6c8e0f1a2b3c4d5e6f7a8b9c0d",
+      "message": "ORB-1: fix login redirect\n",
+      "title": "ORB-1: fix login redirect",
+      "timestamp": "2026-10-24T09:10:41+00:00",
+      "url": "https://gitlab.example.com/example-org/example-app/-/commit/3f2a9c1e5b7d4a6c8e0f1a2b3c4d5e6f7a8b9c0d",
+      "author": {
+        "name": "Example Dev",
+        "email": "[REDACTED]"
+      }
+    },
+    "reviewer_ids": [],
+    "source": {
+      "id": 42,
+      "name": "example-app",
+      "web_url": "https://gitlab.example.com/example-org/example-app",
+      "path_with_namespace": "example-org/example-app",
+      "default_branch": "develop"
+    },
+    "state": "closed",
+    "blocking_discussions_resolved_reason": null,
+    "target": {
+      "id": 42,
+      "name": "example-app",
+      "web_url": "https://gitlab.example.com/example-org/example-app",
+      "path_with_namespace": "example-org/example-app",
+      "default_branch": "develop"
+    },
+    "time_change": 0,
+    "total_time_spent": 0,
+    "url": "https://gitlab.example.com/example-org/example-app/-/merge_requests/17",
+    "work_in_progress": false,
+    "approval_rules": [],
+    "action": "close"
+  },
+  "labels": [],
+  "changes": {
+    "state_id": {
+      "previous": 1,
+      "current": 2
+    },
+    "updated_at": {
+      "previous": "2026-10-24 10:01:44 UTC",
+      "current": "2026-10-24 13:05:00 UTC"
+    }
+  },
+  "repository": {
+    "name": "example-app",
+    "url": "git@gitlab.example.com:example-org/example-app.git",
+    "description": "Example backend",
+    "homepage": "https://gitlab.example.com/example-org/example-app"
+  },
+  "assignees": [
+    {
+      "id": 7,
+      "name": "Example Dev",
+      "username": "exampledev",
+      "avatar_url": "https://gitlab.example.com/uploads/-/system/user/avatar/7/avatar.png",
+      "email": "[REDACTED]"
+    }
+  ],
+  "reviewers": []
+}

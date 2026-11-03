@@ -1,0 +1,1152 @@
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+.pageHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 4px;
+}
+.h1 {
+  font-size: 18px;
+}
+.selCount {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.selFloat {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 20%);
+}
+.filterBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.spacer {
+  flex: 1;
+}
+/* LAUN-16: wide screens see no wrapper; the narrow block below folds them. */
+.fold {
+  display: contents;
+}
+.filterBar .filterToggle,
+.filterBar .selectToggle,
+.card .cardDate {
+  display: none;
+}
+.search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0 8px;
+  min-height: 32px;
+  background: var(--bg);
+}
+.search input {
+  border: 0;
+  background: transparent;
+  outline: none;
+  width: 140px;
+  min-width: 0;
+}
+.search:focus-within {
+  border-color: var(--field-focus-border); /* LAUN-57: quiet, no ring */
+}
+.sort select {
+  min-height: 32px;
+  width: auto;
+}
+.viewToggle {
+  display: inline-flex;
+  gap: 2px;
+}
+.viewToggle button[aria-pressed='true'] {
+  background: var(--selected);
+}
+.scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+/* LAUN-52: with the board shown, the board and its columns do the scrolling (sideways and
+   inside a column), so this area is a fixed-height flex column and never scrolls itself. */
+.scrollBoard {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.group {
+  margin-bottom: 4px;
+}
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 3; /* above the row controls (z-index 1), below .selFloat (5) */
+}
+.count {
+  color: var(--muted);
+  font-weight: 400;
+}
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.row {
+  position: relative;
+  display: grid;
+  /* LAUN-233: the labels column is as wide as its content (as `auto` was) up to `.labels { max-width }`, but the title
+     keeps at least 120px: the labels get only the space left after that, and `.labels` clips what does not fit.
+     LAUN-235: a theme widens the state and date columns through the two variables (Terminal: a tag, a mono date). */
+  /* prettier-ignore */
+  grid-template-columns: 20px 18px 74px var(--row-state, 18px) minmax(120px, 1fr) minmax(0, max-content) 28px var(--row-date, 40px);
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  min-height: 36px;
+  border-bottom: 1px solid var(--border);
+}
+/* LAUN-50: the title link is stretched over the whole row or card (::after). Controls sit above it.
+   A row or card is its own stacking context, so these z-indexes never reach the sticky group head. */
+.row,
+.card {
+  isolation: isolate;
+}
+.title::after,
+.cardTitle::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.cardTitle::after {
+  border-radius: 8px; /* the card's radius, for the focus ring */
+}
+.check,
+.cardCheck,
+.colCheck,
+.row button,
+.card button,
+.row input,
+.card input {
+  position: relative;
+  z-index: 1;
+}
+/* Tooltip (title attribute) and copyable text stay above the overlay. A plain click on them
+   still opens the issue: the li forwards it to the link (onCardClick in cardLink.ts). */
+.row .ident,
+.card .ident,
+.row .prio,
+.row .status,
+.row .labelsCell,
+.row .assignee,
+.row .updated {
+  position: relative;
+  z-index: 1;
+}
+.row .ident,
+.card .ident {
+  user-select: text;
+  cursor: text;
+}
+.title,
+.cardTitle {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+.title:hover,
+.cardTitle:hover {
+  text-decoration: none;
+}
+/* The focus ring is drawn on the overlay, so it needs no :has() and no browser loses it. */
+.title:focus-visible,
+.cardTitle:focus-visible {
+  outline: none;
+}
+.title:focus-visible::after,
+.cardTitle:focus-visible::after {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+.row:hover:not(.selected):not(.focused) {
+  background: var(--surface);
+}
+.card:hover:not(.selected):not(.focused) {
+  background: var(--surface-hover);
+}
+/* LAUN-60: the hover cue is the row / card background above; the title is never underlined. */
+.row:hover .titleText,
+.card:hover .titleText,
+.title:focus-visible .titleText,
+.cardTitle:focus-visible .titleText,
+.row .ident:hover,
+.card .ident:hover,
+.title:hover,
+.cardTitle:hover,
+.relLink:hover {
+  text-decoration: none;
+}
+.focused {
+  box-shadow: inset 3px 0 0 var(--accent-solid);
+  background: var(--surface);
+}
+.selected {
+  background: var(--selected);
+}
+.check {
+  margin: 0;
+}
+.prio,
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.ident {
+  font: 12px var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.title {
+  color: var(--text);
+  min-width: 0;
+  padding: 8px 0;
+  text-decoration: none;
+}
+/* The ellipsis lives on the inner span, so the link itself does not clip its ::after. */
+.titleText {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.labelsCell {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  min-width: 0;
+}
+/* LAUN-233: one line of pills, clipped at the width the grid gives it (at most `max-width`, which grows with the
+   screen). The row hook (labelOverflow.ts) marks every pill the clip cuts with `data-clipped`; it is hidden (still
+   read by a screen reader) and counted in "+N", which sits outside the clip and so always shows. Nothing is clipped
+   vertically, so a large minimum font size cuts no text. The 4px side padding (taken back by the margin, so nothing
+   moves) keeps the chip's focus ring inside the clip; `clip`, not `hidden`, so a focused item cannot scroll it. */
+.labels {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  box-sizing: content-box; /* max-width and the margin are about the content, not the padding */
+  min-width: 0;
+  max-width: max(400px, 30vw);
+  padding: 0 4px;
+  margin: 0 -4px;
+  overflow-x: clip;
+}
+.labels:empty {
+  padding: 0;
+  margin: 0;
+}
+/* A pill never shrinks (a short label keeps its width); a long one is capped at 160px and ends in an ellipsis, the
+   full name in its `title`. The chip keeps its own `max-width: 160px`. No percentage max-width here: in this
+   content-sized column a percentage counts as none for the item's max-content size, so a long project name made
+   the column as wide as the cap. A box narrower than the chip cuts it (the cell's hover text names it). */
+.labels > * {
+  flex: none;
+}
+.labels > :not(.projectChip) {
+  max-width: 160px;
+}
+.labels > [data-clipped] {
+  opacity: 0;
+}
+.labelsCell > .more {
+  flex: none;
+}
+.projectChip {
+  position: relative;
+  z-index: 1;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 12px;
+  text-decoration: none;
+}
+.projectChip:hover {
+  color: var(--text);
+}
+.more {
+  color: var(--muted);
+  font-size: 12px;
+}
+.assignee {
+  display: inline-flex;
+  justify-content: center;
+}
+.noAssignee {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px dashed var(--muted);
+}
+.updated {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+}
+.sentinel {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: var(--muted);
+}
+
+/* board */
+.board {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  align-items: stretch; /* every column is as tall as the board (LAUN-52) */
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  cursor: grab; /* LAUN-55: a press on empty space and a drag scrolls the board (useDragScroll.ts) */
+}
+.board.dragScrolling,
+.board.dragScrolling * {
+  cursor: grabbing;
+  user-select: none;
+}
+/* The whole column, empty area included, is the <section>: the gray panel and (LAUN-29) the drop
+   target. Cards scroll inside it. */
+.column {
+  flex: 0 0 272px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* LAUN-173: the "+" at the foot of a lane. It takes its space always (no jump); it shows on lane hover,
+   on focus inside the lane, and always where there is no hover. It is outside the card list. */
+.colFoot {
+  flex: 0 0 auto;
+  display: flex;
+  padding: 0 8px 8px;
+}
+.colAdd {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.colAdd:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+.column:hover .colAdd,
+.column:focus-within .colAdd,
+.colAdd:focus-visible {
+  opacity: 1;
+}
+/* Three classes plus an element: it must beat the hover reveal (.column:hover .colAdd) and the touch rule. */
+body.dragActive .column .colAdd {
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: none), (max-width: 760px) {
+  .colAdd {
+    opacity: 1;
+    min-height: 40px;
+  }
+}
+.dropTarget {
+  outline: 2px dashed var(--accent-solid);
+  outline-offset: -2px;
+}
+.colHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0 8px 8px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* LAUN-233: a card is never wider than its column */
+  gap: 6px;
+  align-content: start;
+  flex: 1;
+  min-height: 40px;
+  overflow-y: auto;
+  position: relative; /* LAUN-29: the drag measures cards by offsetTop and places the gap in here */
+}
+.card {
+  position: relative; /* contains .sr-only so it cannot widen the page */
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* LAUN-233: a long label pill cannot widen the card */
+  gap: 6px;
+  cursor: grab;
+}
+.card[data-drag-off] {
+  cursor: default; /* LAUN-171: label and project columns do not drag */
+}
+/* LAUN-29: the pointer-driven drag (boardDrag.ts). The card you hold is a copy in a fixed layer; the
+   real card stays in its slot, hidden; cards under the gap slide with a transform; one gray
+   placeholder marks the gap. Nothing here changes the layout of the board. */
+.dragActive,
+.dragActive * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  cursor: grabbing !important;
+}
+.dragActive .card {
+  transition: transform 150ms ease;
+}
+.dragActive .dragClone {
+  transition: none; /* it follows the pointer at once; the landing sets its own transition inline */
+}
+.dragClone {
+  position: fixed;
+  left: 0;
+  top: 0;
+  margin: 0;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--bg);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.28);
+}
+/* LAUN-171: the hint over a drag in a sort that is not Manual. It never takes the pointer. */
+.dragHint {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.28);
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.dragHint strong {
+  color: inherit;
+  font-weight: 600;
+}
+.dragLanding {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.2);
+}
+.card[data-drag-group] {
+  opacity: 0.45; /* LAUN-61: the other selected cards stay in their slots, dimmed, while the group is held */
+}
+.dragBadge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  border-radius: 11px;
+  background: var(--accent-solid);
+  color: var(--on-accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  text-align: center;
+}
+/* LAUN-163: the Columns panel (the popover shell is ui.panel) */
+.columnsPanel {
+  display: grid;
+  gap: 2px;
+  min-width: 240px;
+  max-height: min(70vh, 420px);
+  overflow-y: auto;
+}
+.columnsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px; /* a touch target on a phone */
+  padding: 0 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.columnsRow:hover {
+  background: var(--surface);
+}
+.columnsRow input[type='checkbox'] {
+  margin: 0;
+  flex: none;
+}
+.columnsName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.columnsHead {
+  padding: 6px 8px 2px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.boardHidden {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.boardHint {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0 0 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.card[data-drag-source] {
+  visibility: hidden; /* an attribute, not a class: it survives a React re-render of the card */
+}
+/* LAUN-111: the list drag (listDrag.ts). The handle sits in the row's left padding, so the grid does not
+   change. touch-action none on the handle only: a finger there moves the row, anywhere else scrolls. */
+/* .row .handle beats `.row button` (position: relative), and .row.rowDrag beats the phone row's padding. */
+.row.rowDrag {
+  padding-left: 30px;
+}
+.row .handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: grab;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  opacity: 0;
+  z-index: 2; /* above the stretched title link (0) and the row controls (1) */
+}
+.row:hover .handle,
+.row .handle:focus-visible,
+.row[data-drag-source] .handle {
+  opacity: 1;
+}
+@media (hover: none), (max-width: 760px) {
+  .row .handle {
+    opacity: 0.55; /* no hover on a phone: the handle is always there */
+    width: 36px;
+  }
+  .row.rowDrag {
+    padding-left: 36px;
+  }
+}
+.listWrap {
+  position: relative;
+}
+.listGap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px solid var(--accent-solid);
+  margin-top: -1px;
+  pointer-events: none;
+  z-index: 4;
+}
+.row[data-drag-source] {
+  opacity: 0.35;
+}
+.rowClone {
+  display: grid;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.group[data-drop-target] .groupHead {
+  box-shadow: inset 0 -2px 0 var(--accent-solid);
+}
+.dropGap {
+  display: none;
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  border-radius: 8px;
+  background: var(--surface-hover);
+  border: 1px dashed var(--border);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dragActive .card {
+    transition: none;
+  }
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cardTitle {
+  color: var(--text);
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+.cardTitle .titleText {
+  white-space: normal;
+}
+.cardMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+/* LAUN-233: a long pill takes at most one line of the card and ends in an ellipsis; the priority icon keeps its size.
+   `:not(.projectChip)`: a plain `.cardMeta > *` has the same specificity as `.projectChip { max-width: 160px }` and
+   comes later, so it replaced the chip's cap and a long project name took the whole card line. */
+.cardMeta > * {
+  min-width: 0;
+}
+.cardMeta > :not(.projectChip) {
+  max-width: 100%;
+}
+.cardMeta > .projectChip {
+  max-width: min(160px, 100%);
+}
+.cardMeta > svg {
+  flex: none;
+}
+
+/* detail */
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  grid-template-areas:
+    'head props'
+    'main props';
+  grid-template-rows: auto 1fr;
+  column-gap: 24px;
+  row-gap: 8px;
+  padding: 16px 24px 48px;
+  overflow: auto;
+  flex: 1;
+  align-content: start;
+}
+.detailHead,
+.detailMain {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  align-content: start;
+}
+.detailHead {
+  grid-area: head;
+}
+.detailMain {
+  grid-area: main;
+}
+.titleInput {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  background: transparent;
+  font: 600 22px/1.3 var(--font);
+  padding: 4px 6px;
+  margin: 0 -6px;
+  resize: none;
+  field-sizing: content;
+  overflow: hidden;
+}
+.titleInput:hover:not(:disabled),
+.titleInput:focus {
+  border-color: var(--border);
+}
+.block {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  gap: 8px;
+}
+.blockHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.h2 {
+  font-size: 14px;
+}
+.h3 {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 6px 0 2px;
+}
+.props {
+  grid-area: props;
+  min-width: 0;
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+.propList {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 10px 8px;
+  margin: 0;
+  align-items: center;
+}
+.propList dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.propList dd {
+  margin: 0;
+  min-width: 0;
+}
+.parentLink {
+  display: block;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.branchRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px;
+}
+.branch {
+  font: 12px var(--mono);
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  min-width: 0;
+  flex: 1 1 100%;
+}
+.relList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.relRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.relRow > svg,
+.relRow > button {
+  flex: none;
+}
+.relRow > [role='alert'] {
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.relLink {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+.relAdd {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.thread {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+.thread .thread {
+  padding-left: 16px;
+  margin-top: 10px;
+  border-left: 2px solid var(--border);
+}
+.thread .thread .thread .thread .thread {
+  padding-left: 0;
+}
+.comment {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+.commentHead {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+/* LAUN-230: a long one-word author name wraps in a deep reply at 320px. */
+.commentHead strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.commentActions {
+  display: flex;
+  gap: 2px;
+}
+.compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.composeBtns {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+@media (max-width: 900px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'props'
+      'main';
+    grid-template-rows: auto;
+    padding: 12px 16px 48px;
+  }
+  .props {
+    position: static;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+  .propList {
+    gap: 8px;
+  }
+}
+@media (max-width: 760px) {
+  /* Filter bar: one row (Search, Filter, view toggle); the rest folds. */
+  .filterBar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+  }
+  .search {
+    order: 1;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .search input {
+    width: 100%;
+  }
+  .filterBar .filterToggle {
+    display: inline-flex;
+    order: 2;
+  }
+  .viewToggle {
+    order: 3;
+  }
+  .fold {
+    display: none;
+    order: 4;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+  .filterOpen .fold {
+    display: flex;
+  }
+  .filterBar .selectToggle {
+    display: inline-flex;
+  }
+  .filterBar .selectToggle[aria-pressed='true'] {
+    background: var(--selected);
+  }
+  .fold .spacer {
+    display: none;
+  }
+  /* LAUN-163: the Columns button sits near the left in the folded bar, so its panel opens rightwards and
+     never wider than the screen (the wide bar keeps ui.panelRight). */
+  .fold {
+    position: relative;
+  }
+  .fold .columnsWrap {
+    position: static; /* the panel anchors to the fold, which is as wide as the screen, not to the button */
+  }
+  .fold .columnsPanel {
+    left: 0;
+    right: 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .pageHead {
+    display: none;
+  }
+  /* Select mode shows the count and Clear (the h1 stays hidden). */
+  .selecting .pageHead {
+    display: flex;
+  }
+  .selecting .h1 {
+    display: none;
+  }
+
+  /* Rows: two lines. Title (up to two lines) and assignee; then the meta line. */
+  .row {
+    grid-template-columns: auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      't t t t a'
+      'p i s l u';
+    align-items: center;
+    padding: 12px;
+    gap: 6px 8px;
+  }
+  .selecting .row {
+    grid-template-columns: 20px auto auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'c t t t t a'
+      '. p i s l u';
+  }
+  .row .check {
+    grid-area: c;
+    display: none;
+    align-self: start;
+    margin-top: 2px;
+  }
+  .selecting .row .check {
+    display: inline-block;
+  }
+  .row .title {
+    grid-area: t;
+    padding: 0;
+  }
+  .row .titleText {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
+  }
+  .row .assignee {
+    grid-area: a;
+    align-self: start;
+  }
+  .row .prio {
+    grid-area: p;
+  }
+  .row .ident {
+    grid-area: i;
+  }
+  .row .status {
+    grid-area: s;
+    display: inline-flex;
+  }
+  /* LAUN-233: on a phone the labels line is as before: one line in the `l` area, the project chip gives way first,
+     a pill longer than the line ends in an ellipsis (its own `max-width: 100%`), and `.labels` clips the rest. */
+  .row .labelsCell {
+    grid-area: l;
+    min-width: 0;
+  }
+  .row .labels {
+    overflow: hidden;
+    max-width: none;
+    padding: 0;
+    margin: 0;
+  }
+  .row .labels > .projectChip {
+    flex: 0 1 auto;
+  }
+  .row .labels > :not(.projectChip) {
+    max-width: 100%;
+  }
+  .row .updated {
+    grid-area: u;
+  }
+
+  /* Board cards: roomier, as Linear's. Checkbox only in select mode. */
+  .column {
+    flex-basis: min(84vw, 320px);
+  }
+  .colHead {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .cards {
+    gap: 10px;
+  }
+  .card {
+    padding: 14px;
+    gap: 10px;
+  }
+  .card .cardCheck,
+  .colHead .colCheck {
+    display: none;
+  }
+  .selecting .card .cardCheck,
+  .selecting .colHead .colCheck {
+    display: inline-block;
+  }
+  .cardMeta {
+    gap: 8px;
+  }
+  .card .cardDate {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+  }
+}
+
+/* LAUN-235 (decisions-T42-themes.md): the issue list and board in the Paper and Terminal themes. No shadows:
+   the floating parts keep (or gain) a rule instead. The Linear theme sets no data-look. */
+:global(:root[data-look]) .selFloat,
+:global(:root[data-look]) .dragHint,
+:global(:root[data-look]) .dragLanding {
+  box-shadow: none;
+}
+:global(:root[data-look]) .dragClone {
+  box-shadow: none;
+  outline: 1px solid var(--border-strong);
+}
+:global(:root[data-look]) .dragHint {
+  border: 1px solid var(--border-strong);
+}
+/* Paper: airy 46px rows, the group head is a serif title over a strong rule, 6px corners. */
+:global(:root[data-look='paper']) .row {
+  min-height: 46px;
+}
+:global(:root[data-look='paper']) .groupHead {
+  padding: 14px 16px 8px;
+  font-size: 16px;
+  background: var(--bg);
+  border-bottom-color: var(--border-strong);
+}
+:global(:root[data-look='paper']) .count {
+  font: 400 13px var(--font);
+}
+:global(:root[data-look='paper']) .column,
+:global(:root[data-look='paper']) .card,
+:global(:root[data-look='paper']) .cardTitle::after,
+:global(:root[data-look='paper']) .colAdd,
+:global(:root[data-look='paper']) .selFloat {
+  border-radius: var(--radius);
+}
+/* Terminal: dense 28px rows, a wider state column for the bracket tag, an amber ">" on the focused row,
+   and "-- in progress (3) ------" group heads. Decoration only: the alt text after "/" is empty. */
+:global(:root[data-look='terminal']) .row {
+  min-height: 28px;
+}
+/* The state tag is six characters; the date ("last mo.") is eight in a monospace face. */
+:global(:root[data-look='terminal']) .row {
+  --row-state: 44px;
+  --row-date: 60px;
+}
+:global(:root[data-look='terminal']) .row.focused {
+  box-shadow: none;
+  background: var(--selected);
+}
+:global(:root[data-look='terminal']) .row.focused::before {
+  content: '>';
+  content: '>' / '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--accent);
+  font-weight: 700;
+}
+:global(:root[data-look='terminal']) .groupHead {
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--bg);
+  border-bottom: 0;
+}
+:global(:root[data-look='terminal']) .groupHead [data-state-tag] {
+  display: none;
+}
+:global(:root[data-look='terminal']) .groupHead::before {
+  content: '--';
+  content: '--' / '';
+  color: var(--muted);
+}
+:global(:root[data-look='terminal']) .groupHead::after {
+  content: '';
+  flex: 1;
+  min-width: 16px;
+  border-top: 1px dashed var(--border-strong);
+}
+:global(:root[data-look='terminal']) .count::before {
+  content: '(';
+  content: '(' / '';
+}
+:global(:root[data-look='terminal']) .count::after {
+  content: ')';
+  content: ')' / '';
+}

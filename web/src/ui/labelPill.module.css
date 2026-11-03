@@ -1,0 +1,121 @@
+/* The one label pill (LAUN-46). Colours come from the tokens, so dark mode follows. */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 22px;
+  max-width: 100%;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+}
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  background: var(--surface);
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The "x" sits over a reserved strip at the right of the pill, so hover never changes the pill's size.
+   Its hit area is 24px wide and as high as the pill (no taller). */
+.removable {
+  position: relative;
+  padding-right: 22px;
+}
+.remove {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  bottom: -1px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 0 11px 11px 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+}
+.pill:hover .remove,
+.pill:focus-within .remove {
+  opacity: 1;
+}
+.remove:hover {
+  color: var(--text);
+}
+.remove:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+@media (hover: none) {
+  .remove {
+    opacity: 1;
+  }
+}
+
+/* The wrapping row of pills and the quiet "+" at its end. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+/* LAUN-230: an item may shrink below the pill's no-wrap name, so `.pill { max-width: 100% }` and the name's ellipsis
+   apply (the full name stays in the `title`). Without it a long label ran past the Properties column. */
+.row > li {
+  min-width: 0;
+  max-width: 100%;
+}
+.add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 22px;
+  min-width: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.addText {
+  gap: 4px;
+  padding: 0 8px;
+}
+.add:hover,
+.add[aria-expanded='true'] {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border);
+}
+.add:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}

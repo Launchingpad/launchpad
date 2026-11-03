@@ -1,0 +1,8 @@
+# Web app routes that a notification mail links to (LAUN-94).
+# One route per line: <name> <path pattern>. A ":x" segment matches any one segment.
+# TestSender_MailLinksMatchWebRoutes matches the links of a sent mail against this
+# file; web/src/mailRoutes.test.tsx matches the same file against the route tree in
+# web/src/App.tsx. A change to either side breaks one of the two tests.
+issue /:org/issue/:identifier
+settings /:org/settings/notifications
+unsubscribe /unsubscribe/:token

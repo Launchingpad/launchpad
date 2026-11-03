@@ -1,0 +1,69 @@
+.page {
+  min-height: 100%;
+  display: grid;
+  place-items: start center;
+  padding: 24px 16px;
+  background: var(--surface);
+}
+.card {
+  width: min(520px, 100%);
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow);
+}
+.title {
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.group {
+  border: 0;
+  padding: 0;
+  margin: 16px 0 0;
+  min-width: 0;
+}
+.group legend {
+  font-weight: 600;
+  margin-bottom: 8px;
+  padding: 0;
+}
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: start;
+}
+.fieldError {
+  color: var(--danger);
+  font-size: 12px;
+}
+.tokenBox {
+  display: block;
+  margin: 12px 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font: 13px var(--mono);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.confirm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 12px 0;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+@media (max-width: 480px) {
+  .pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

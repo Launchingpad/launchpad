@@ -1,0 +1,31 @@
+/* LAUN-235 (decisions-T42-themes.md): element rules of the Paper and Terminal themes that no token can carry.
+   Every selector starts with :root[data-look...], so the Linear theme (no attribute) is untouched. Component
+   rules live in their CSS module as :global(:root[data-look='x']) .class. */
+
+:root[data-look] body {
+  font-size: var(--body-size);
+}
+
+/* Paper: Fraunces 600 for headings; the focus ring sits 3px outside. */
+:root[data-look='paper'] :is(h1, h2, h3) {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+:root[data-look='paper'] :focus-visible {
+  outline-offset: 3px;
+}
+
+/* Terminal: one monospace face, bold headings, square corners everywhere (an avatar too). */
+:root[data-look='terminal'] :is(h1, h2, h3) {
+  font-weight: 700;
+}
+:root[data-look='terminal'] *,
+:root[data-look='terminal'] *::before,
+:root[data-look='terminal'] *::after {
+  border-radius: 0 !important; /* modules set fixed radii (4px, 8px, 10px, 999px); the theme has none */
+}
+:root[data-look='terminal'] ::selection {
+  background: var(--accent-solid);
+  color: var(--on-accent);
+}

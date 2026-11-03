@@ -1,0 +1,66 @@
+{
+  "action": "closed",
+  "number": 17,
+  "pull_request": {
+    "url": "https://api.github.com/repos/example-org/example-app/pulls/17",
+    "id": 900000017,
+    "html_url": "https://github.com/example-org/example-app/pull/17",
+    "number": 17,
+    "state": "closed",
+    "locked": false,
+    "title": "Fix login redirect",
+    "user": {
+      "login": "example-dev",
+      "id": 5001,
+      "type": "User"
+    },
+    "body": "",
+    "created_at": "2026-10-20T09:00:00Z",
+    "updated_at": "2026-10-21T10:00:00Z",
+    "closed_at": "2026-10-21T10:00:00Z",
+    "merged_at": null,
+    "merged": false,
+    "draft": false,
+    "head": {
+      "label": "example-org:chen/fix-login-redirect",
+      "ref": "chen/fix-login-redirect",
+      "sha": "0123456789abcdef0123456789abcdef01234567",
+      "user": {
+        "login": "example-org",
+        "id": 6001
+      },
+      "repo": {
+        "id": 4242,
+        "name": "example-app",
+        "full_name": "example-org/example-app",
+        "private": true
+      }
+    },
+    "base": {
+      "label": "example-org:main",
+      "ref": "main",
+      "sha": "89abcdef0123456789abcdef0123456789abcdef",
+      "user": {
+        "login": "example-org",
+        "id": 6001
+      },
+      "repo": {
+        "id": 4242,
+        "name": "example-app",
+        "full_name": "example-org/example-app",
+        "private": true
+      }
+    }
+  },
+  "repository": {
+    "id": 4242,
+    "name": "example-app",
+    "full_name": "example-org/example-app",
+    "private": true,
+    "html_url": "https://github.com/example-org/example-app"
+  },
+  "sender": {
+    "login": "example-dev",
+    "id": 5001
+  }
+}

@@ -1,0 +1,202 @@
+# Launchpad SAMPLE stack. NOT used by deploy.sh and NOT covered by
+# `make compose-check`. It shows how to run Launchpad from one compose file
+# and one env file, without deploy.sh. Guide: docs/self-hosting.md,
+# "Run it from a compose file only".
+#
+# The images are NOT published on any registry. `launchpad-api:<version>`
+# and `launchpad-web:<version>` below are LOCAL tags: build them first, on the
+# host that runs the stack (the commands are in docs/self-hosting.md). Until
+# someone chooses a registry, `docker compose pull` cannot fetch them.
+#
+# This file is a copy made by hand. It can drift from deploy/docker-compose.yml
+# and no CI job checks it. Compare the two before you rely on it.
+#
+# Use it from this directory (the nginx file is a relative path):
+#   cp sample.env.example sample.env   # then edit; keep mode 0600
+#   docker compose -f docker-compose.sample.yml --env-file sample.env up -d
+#
+# What is left out, compared with deploy/docker-compose.yml: the nightly
+# `backup` job and the `offsite` worker (it needs a database role that only
+# deploy.sh makes) and their networks. There are no backups in this sample.
+# Everything else keeps the hardening of the real file: ports on
+# SAMPLE_BIND_ADDR (default 127.0.0.1), no socket or host mounts except one
+# read-only nginx file, read-only root file systems, cap_drop ALL,
+# no-new-privileges, images pinned by digest, internal networks.
+#
+# One step is NOT in this file: the silo bucket and the app's silo user. Make
+# them once after the first `up` (docs/self-hosting.md). The app waits for
+# the database and silo, but it cannot store a file until that is done.
+# Fixed name, no env override in this file. (A COMPOSE_PROJECT_NAME in your
+# shell, or `-p`, still wins: do not set either to `launchpad`, the name
+# deploy.sh uses. Unlabelled volumes of the same name would be reused.)
+name: launchpad-sample
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # One-shot: a new named volume is owned by root, and silo and the app run
+  # as non-root users.
+  volume-init:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    user: "0:0"
+    network_mode: none
+    entrypoint: ["/bin/sh", "-c", "chown 10001:10001 /silo /import-work"]
+    volumes:
+      - silo_data:/silo
+      - import_work:/import-work
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    logging: *logging
+    restart: "no"
+
+  postgres:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing from the env file}
+      POSTGRES_DB: devops
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [backend]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    logging: *logging
+    restart: unless-stopped
+
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: "10001:10001"
+    command: server /data
+    environment:
+      HOME: /tmp
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:?SILO_ROOT_USER missing from the env file}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:?SILO_ROOT_PASSWORD missing from the env file}
+      MINIO_BROWSER: "off"
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${WEB_HOST:?WEB_HOST missing from the env file}
+    volumes:
+      - silo_data:/data
+    networks: [edge]
+    ports:
+      - "${SAMPLE_BIND_ADDR:-127.0.0.1}:${SAMPLE_FILES_PORT:-4002}:9000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    logging: *logging
+    restart: unless-stopped
+
+  app:
+    # LOCAL tag. Build it first (docs/self-hosting.md). Not on any registry.
+    image: launchpad-api:${LAUNCHPAD_VERSION:?LAUNCHPAD_VERSION missing from the env file}
+    pull_policy: never
+    environment:
+      DATABASE_URL: postgres://devops:${POSTGRES_PASSWORD}@postgres:5432/devops?sslmode=disable
+      PORT: "8080"
+      # Fixed on purpose: never let the shell turn the dev seams on.
+      LOG_ENV: production
+      PUBLIC_BASE_URL: https://${WEB_HOST}
+      WEB_ORIGINS: https://${WEB_HOST}
+      # Optional, empty by default, as in deploy/docker-compose.yml: the
+      # proxies whose X-Forwarded-For the app believes (list every hop), and
+      # the private ranges the git API clients may reach.
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      GIT_ALLOW_PRIVATE_PROVIDERS: ${GIT_ALLOW_PRIVATE_PROVIDERS:-}
+      GIT_ALLOW_PRIVATE_CIDRS: ${GIT_ALLOW_PRIVATE_CIDRS:-}
+      POSTMARK_SERVER_TOKEN: ${POSTMARK_SERVER_TOKEN:-}
+      POSTMARK_FROM: ${POSTMARK_FROM:-}
+      AUTH_OTP_PEPPER: ${AUTH_OTP_PEPPER:?AUTH_OTP_PEPPER missing from the env file}
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:?SETTINGS_ENCRYPTION_KEY missing from the env file}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY missing from the env file}
+      S3_ENDPOINT: http://silo:9000
+      S3_PUBLIC_ENDPOINT: https://${FILES_HOST:?FILES_HOST missing from the env file}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET missing from the env file}
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY missing from the env file}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY missing from the env file}
+      IMPORT_WORK_DIR: /work/import
+    volumes:
+      - import_work:/work/import
+    networks: [backend, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      silo:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+  web:
+    # LOCAL tag. Build it first (docs/self-hosting.md). Not on any registry.
+    image: launchpad-web:${LAUNCHPAD_VERSION:?LAUNCHPAD_VERSION missing from the env file}
+    pull_policy: never
+    environment:
+      WEB_HOST: ${WEB_HOST}
+      # deploy.sh also sets DEPLOY_NGINX_CONF_SUM so a changed template
+      # recreates web. Here it does not: after you edit the nginx template,
+      # run `up -d --force-recreate web`.
+      FILES_ORIGIN: https://${FILES_HOST}
+      API_ORIGIN: ""
+    volumes:
+      # The same-origin server block (/api goes to the app). It is the only
+      # host path this file mounts. Run compose from this directory.
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks: [edge]
+    ports:
+      - "${SAMPLE_BIND_ADDR:-127.0.0.1}:${SAMPLE_WEB_PORT:-4001}:8080"
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/nginx-health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+networks:
+  # Postgres: no route out, no published port.
+  backend:
+    internal: true
+  edge: {}
+
+# No deploy.sh label on these volumes on purpose: deploy.sh must never adopt
+# a sample stack's data. Do not run both under one project name.
+volumes:
+  postgres_data:
+  silo_data:
+  import_work:

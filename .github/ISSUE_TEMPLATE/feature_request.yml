@@ -1,0 +1,29 @@
+name: Feature request
+description: Ask for a new feature or a change.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Launchpad is small and young. We may not accept every request.
+        Say what problem you have before you say what to build.
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What can you not do today?
+      placeholder: "I cannot sort issues by due date in the list."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Your proposal
+      description: What should change? Keep it short.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Other ways to solve it
+      description: What did you try? What else could work?

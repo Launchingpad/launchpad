@@ -1,0 +1,116 @@
+# GitHub Actions CI. It runs the same make targets a developer runs:
+# docs/development.md and CONTRIBUTING.md. The private GitLab pipeline
+# (.gitlab-ci.yml) is not part of the public tree.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  server:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      COMPOSE_PROJECT_NAME: launchpad-ci
+      DEV_OPS_PG_PORT: "55433"
+      DEV_OPS_S3_PORT: "59100"
+      TEST_DATABASE_URL: postgres://devops:devops@localhost:55433/devops?sslmode=disable
+      # 127.0.0.1, not localhost: on Linux runners "localhost" fails the netguard
+      # test seam (measured: ssrf_blocked). The guard is unchanged.
+      TEST_S3_ENDPOINT: http://127.0.0.1:59100
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+      - name: Unit lane (vet, gofmt, race)
+        run: make test
+      - name: Start postgres and silo
+        run: |
+          docker compose up -d postgres silo
+          for i in $(seq 1 60); do
+            docker compose exec -T postgres pg_isready -U devops -d devops >/dev/null 2>&1 && break
+            [ "$i" -eq 60 ] && { docker compose logs postgres; exit 1; }
+            sleep 2
+          done
+          for i in $(seq 1 60); do
+            docker compose exec -T silo silo healthcheck ready >/dev/null 2>&1 && break
+            [ "$i" -eq 60 ] && { docker compose logs silo; exit 1; }
+            sleep 2
+          done
+      - name: Integration lane
+        run: make test-integration
+      - name: Generated files are current
+        run: make sqlc-check schema-check
+      - name: Compose checks
+        run: make compose-check
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v --remove-orphans --timeout 20 || true
+
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore tests
+        run: make restore-test
+      - name: Deploy script tests
+        run: make deploy-test
+      - name: shellcheck
+        run: make deploy-lint
+
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Build the server image
+        run: docker build --pull -t launchpad-server:ci server
+      - name: Build the web image
+        run: docker build -t launchpad-web:ci web
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run check:dist
+      - run: npm run openapi:check

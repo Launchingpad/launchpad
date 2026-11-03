@@ -1,0 +1,95 @@
+/* Design tokens. Every text/background pair used in the UI is checked for WCAG AA
+   (4.5:1) by src/styles/contrast.test.ts, in both themes.
+   LAUN-235: [data-preview='linear'] is the Linear mini-preview on the Appearance page; it takes these values
+   whatever theme the page shows. The :root selectors are unchanged. */
+[data-preview='linear'],
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --bg-page: #f1f1f5; /* LAUN-120/181: the page tone behind the shell's sidebar and main cards */
+  --bg-card: #ffffff; /* a box inside the main card: the comment box, the Properties card on a phone */
+  --surface: #f6f6f8;
+  --surface-hover: #ececf0;
+  /* LAUN-202: fills inside the issue page's centre card (--bg-card), where --surface would vanish in dark, and a
+     hover on the page tone (the Properties column). */
+  --card-surface: #f6f6f8;
+  --card-surface-hover: #ececf0;
+  --page-hover: #e3e3ea;
+  --border: #dcdce2;
+  --text: #1a1a1f;
+  --muted: #5b5b66;
+  --accent: #4040b8;
+  --accent-solid: #4a4acf;
+  --on-accent: #ffffff;
+  --danger: #b3261e;
+  --danger-bg: #fdecea;
+  --warn-bg: #fff4d6;
+  --warn-text: #5c4300;
+  --selected: #e8e8fb;
+  --focus: #2f6fed;
+  --field-focus-border: #9393a3;
+  --knob: #ffffff; /* LAUN-235: the knob of a settings switch (white in both Linear variants) */
+  --shadow: 0 8px 28px rgba(20, 20, 40, 0.18);
+  --shadow-card: 0 1px 2px rgba(20, 20, 40, 0.06);
+  --radius: 8px;
+  --sidebar-w: 248px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-heading: var(--font); /* LAUN-235: Paper sets a serif; Linear headings use the UI face */
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) [data-preview='linear'],
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #0f0f12;
+    --bg-page: #0a0a0d;
+    --bg-card: #17171c;
+    --surface: #17171c;
+    --surface-hover: #22222a;
+    --card-surface: #202027;
+    --card-surface-hover: #2b2b34;
+    --page-hover: #1b1b21;
+    --border: #2d2d36;
+    --text: #ececf1;
+    --muted: #a1a1ae;
+    --accent: #a5a5ff;
+    --accent-solid: #5555d6;
+    --on-accent: #ffffff;
+    --danger: #ff8a80;
+    --danger-bg: #3a1614;
+    --warn-bg: #3a2e0a;
+    --warn-text: #ffd978;
+    --selected: #25254a;
+    --focus: #7aa7ff;
+    --field-focus-border: #56566a;
+    --shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+}
+:root[data-theme='dark'] [data-preview='linear'],
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0f0f12;
+  --bg-page: #0a0a0d;
+  --bg-card: #17171c;
+  --surface: #17171c;
+  --surface-hover: #22222a;
+  --card-surface: #202027;
+  --card-surface-hover: #2b2b34;
+  --page-hover: #1b1b21;
+  --border: #2d2d36;
+  --text: #ececf1;
+  --muted: #a1a1ae;
+  --accent: #a5a5ff;
+  --accent-solid: #5555d6;
+  --on-accent: #ffffff;
+  --danger: #ff8a80;
+  --danger-bg: #3a1614;
+  --warn-bg: #3a2e0a;
+  --warn-text: #ffd978;
+  --selected: #25254a;
+  --focus: #7aa7ff;
+  --field-focus-border: #56566a;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.6);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.5);
+}

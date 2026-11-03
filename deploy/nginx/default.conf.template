@@ -1,0 +1,116 @@
+# dev-ops production nginx: the web app and, on the same origin,
+# the API. Mounted over the web image's default.conf.template by
+# deploy/docker-compose.yml; the image renders it with envsubst. Only the
+# environment variables WEB_HOST and FILES_ORIGIN are substituted here
+# (security.inc, the image's own, uses FILES_ORIGIN and API_ORIGIN).
+#
+# The outer proxy terminates TLS and forwards plain HTTP to this port with
+# the Host header unchanged.
+
+# No caller IP and no User-Agent in the log (AGENTS.md "Store no caller IP
+# and no User-Agent anywhere"). $uri, not $request_uri: no query strings.
+# Set in each server block: that replaces the image's http-level `main`
+# log, which has both. (nginx sees the outer proxy as the client anyway.)
+log_format devops_noip '$time_iso8601 $request_method $uri $status $body_bytes_sent $request_time';
+
+# The outer proxy says whether the browser used https. Only the two real
+# values pass; anything else (or none) becomes this hop's scheme.
+map $http_x_forwarded_proto $devops_forwarded_proto {
+  default $scheme;
+  https   https;
+  http    http;
+}
+
+# Docker's embedded DNS, re-resolved every 10s, so a recreated app
+# container (new IP after `deploy.sh --update`) is found without a restart.
+resolver 127.0.0.11 valid=10s ipv6=off;
+
+server_tokens off;
+
+# Any other Host (an IP, a typo, an absolute-URI proxy request for another
+# site) gets 421 and is never proxied. /nginx-health is for the container
+# health check only.
+server {
+  listen 8080 default_server;
+  server_name _;
+  access_log /dev/stdout devops_noip;
+  location = /nginx-health {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+  location / {
+    return 421;
+  }
+}
+
+server {
+  listen 8080;
+  server_name ${WEB_HOST};
+  access_log /dev/stdout devops_noip;
+  log_not_found off;
+  root /usr/share/nginx/html;
+  index index.html;
+  gzip on;
+  gzip_types text/css application/javascript image/svg+xml application/json;
+
+  # Static pages take no body. The API allows 2 MiB, above the server's own
+  # 1 MiB limit, so the server answers an oversized JSON body with its own
+  # JSON error and nginx stops anything far larger.
+  client_max_body_size 1k;
+
+  include /etc/nginx/conf.d/security.inc;
+
+  # The API and its health route. The upstream is a fixed name: nothing in
+  # the request picks where it goes, so this is no open proxy.
+  location /api/ {
+    client_max_body_size 2m;
+    set $devops_api http://app:8080;
+    proxy_pass $devops_api;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $devops_forwarded_proto;
+    # The caller chain for the app's per-client sign-up limits.
+    # nginx appends the address it sees (the outer proxy) to the chain the
+    # outer proxy sent. The app believes it only when TRUSTED_PROXY_CIDRS
+    # lists every hop (decisions-T12 #9); otherwise it ignores it.
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    # The change feed is SSE: no buffering, long reads.
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+    proxy_send_timeout 60s;
+    # The API sets its own headers (nosniff, the download Referrer-Policy);
+    # the browser-page CSP does not apply to JSON. HSTS for every answer.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+  }
+
+  location = /healthz {
+    limit_except GET HEAD { deny all; }
+    set $devops_api http://app:8080;
+    proxy_pass $devops_api;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $devops_forwarded_proto;
+    add_header Cache-Control "no-store" always;
+  }
+
+  # Hashed assets never change.
+  location /assets/ {
+    limit_except GET HEAD { deny all; }
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    include /etc/nginx/conf.d/security.inc;
+    try_files $uri =404;
+  }
+
+  # The HTML shell must always be fresh. Unknown paths fall back to the SPA.
+  location / {
+    limit_except GET HEAD { deny all; }
+    add_header Cache-Control "no-cache" always;
+    include /etc/nginx/conf.d/security.inc;
+    try_files $uri /index.html;
+  }
+}

@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<body style="font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; color: #1a1a1a; line-height: 1.45;">
+<p style="margin: 0 0 4px 0;"><strong>{{.Identifier}}</strong>: {{.Title}}</p>
+<p style="margin: 0 0 12px 0; color: #555;">Team {{.TeamKey}} &middot; State {{.StateName}}</p>
+<ul style="margin: 0 0 12px 0; padding-left: 20px;">
+{{range .Lines}}<li>{{.}}</li>
+{{end}}</ul>
+{{range .Excerpts}}<blockquote style="margin: 0 0 12px 0; padding-left: 10px; border-left: 3px solid #ccc; color: #444;">{{.}}</blockquote>
+{{end}}<p style="margin: 0 0 12px 0;"><a href="{{.IssueURL}}">Open the issue</a></p>
+{{if .More}}<p style="margin: 0 0 12px 0;">{{.More}}</p>
+{{end}}<hr style="border: 0; border-top: 1px solid #ddd;">
+<p style="font-size: 12px; color: #666;">You get this email because {{.Why}}.<br>
+<a href="{{.SettingsURL}}">Notification settings</a> &middot; <a href="{{.UnsubscribeURL}}">Stop this kind of email</a></p>
+</body>
+</html>

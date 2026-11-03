@@ -1,0 +1,28 @@
+# The official nginx image renders /etc/nginx/templates/*.template with
+# envsubst into /etc/nginx/conf.d/. API_ORIGIN is the only custom variable.
+server {
+  listen 80;
+  server_name _;
+  root /usr/share/nginx/html;
+  index index.html;
+  server_tokens off;
+  gzip on;
+  gzip_types text/css application/javascript image/svg+xml application/json;
+
+  include /etc/nginx/conf.d/security.inc;
+
+  # Hashed assets never change.
+  location /assets/ {
+    add_header Cache-Control "public, max-age=31536000, immutable" always;
+    include /etc/nginx/conf.d/security.inc;
+    try_files $uri =404;
+  }
+
+  # The HTML shell and the theme script must always be fresh. Unknown paths
+  # fall back to the SPA.
+  location / {
+    add_header Cache-Control "no-cache" always;
+    include /etc/nginx/conf.d/security.inc;
+    try_files $uri /index.html;
+  }
+}

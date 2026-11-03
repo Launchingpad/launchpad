@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "launchpad": {
+      "command": "${CLAUDE_PLUGIN_ROOT}/scripts/launchpad-mcp",
+      "args": [],
+      "env": {
+        "LAUNCHPAD_URL": "${user_config.url}",
+        "LAUNCHPAD_ORG": "${user_config.org}",
+        "LAUNCHPAD_TOKEN": "${user_config.token}",
+        "LAUNCHPAD_TEAM": "${user_config.team}",
+        "LAUNCHPAD_FILES_URL": "${user_config.files_url}"
+      }
+    }
+  }
+}

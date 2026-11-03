@@ -1,0 +1,7 @@
+/* The "Turn on cycles" confirm dialog sits in a portal, so no page class reaches it. 40px on a phone and
+   with a coarse pointer (LAUN-10 review). The dialog's X button is in ui/Dialog.tsx and is not raised here. */
+@media (max-width: 760px), (pointer: coarse) {
+  .dialogBody button {
+    min-height: 40px;
+  }
+}

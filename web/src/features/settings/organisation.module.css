@@ -1,0 +1,62 @@
+.problem {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--danger, #e5484d);
+}
+.ok {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.fieldError {
+  font-size: 12px;
+  color: var(--danger, #e5484d);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.touch a,
+.touch button {
+  text-decoration: none;
+}
+/* Touch targets: 40px on a phone and a coarse pointer. `.touch` wraps the page body. */
+@media (max-width: 760px), (pointer: coarse) {
+  .touch button,
+  .touch select,
+  .touch input[type='text'],
+  .touch input:not([type]) {
+    min-height: 40px;
+  }
+}
+
+/* A button that waits for a call keeps focus (aria-disabled) and says so. The focus ring stays. */
+.touch button[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+/* LAUN-22: the logo field. The preview sits beside the buttons and stacks on a phone. */
+.logoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.logoBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+.logoBody .problem,
+.logoBody .ok {
+  margin: 0;
+}
