@@ -30,7 +30,7 @@
 set -eu
 
 # The GitHub repository that publishes the releases. The one place to change.
-repo='kraetos10/launchpad'
+repo='Launchingpad/launchpad'
 
 usage() {
 	cat <<'USAGE_END'

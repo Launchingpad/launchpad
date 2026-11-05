@@ -67,3 +67,16 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.modes {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0 0;
+}
+.progressWrap {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+}
+.progress {
+  width: 100%;
+}

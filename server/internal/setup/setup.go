@@ -151,6 +151,46 @@ func MintIfRequired(ctx context.Context, pool *pgxpool.Pool) (secret string, min
 	return secret, minted, nil
 }
 
+// CheckLink answers whether token is a live setup link, without using it
+// (LAUN-249: POST /setup/restore checks the link before it reads the upload).
+// A malformed, wrong, expired, used or replaced link is ErrInvalidToken; a
+// live link on an install that has a user is ErrComplete.
+func CheckLink(ctx context.Context, pool *pgxpool.Pool, token string) error {
+	if !wellFormed(token) {
+		return ErrInvalidToken
+	}
+	q := dbq.New(pool)
+	ok, err := q.PeekSetupToken(ctx, hashSecret(token))
+	if err != nil {
+		return fmt.Errorf("check setup link: %w", err)
+	}
+	if !ok {
+		return ErrInvalidToken
+	}
+	req, err := Required(ctx, q)
+	if err != nil {
+		return err
+	}
+	if !req {
+		return ErrComplete
+	}
+	return nil
+}
+
+// ConsumeLinkTx uses token inside the caller's transaction (which holds the
+// setup lock). ErrInvalidToken when it is not live.
+func ConsumeLinkTx(ctx context.Context, q *dbq.Queries, token string) error {
+	if !wellFormed(token) {
+		return ErrInvalidToken
+	}
+	if _, err := q.ConsumeSetupToken(ctx, hashSecret(token)); errors.Is(err, pgx.ErrNoRows) {
+		return ErrInvalidToken
+	} else if err != nil {
+		return fmt.Errorf("consume setup link: %w", err)
+	}
+	return nil
+}
+
 // ErrUserNotFound and ErrNotEligible are GrantPlatformAdmin's refusals.
 var (
 	ErrUserNotFound = errors.New("no user with that username")

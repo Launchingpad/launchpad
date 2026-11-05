@@ -23,6 +23,7 @@ import (
 	"devops/internal/idempotency"
 	"devops/internal/importjob"
 	"devops/internal/login"
+	"devops/internal/moveapi"
 	"devops/internal/notify"
 	"devops/internal/platform"
 	"devops/internal/setup"
@@ -66,6 +67,11 @@ type Server struct {
 	// First-run setup. Nil: GET /setup says setupRequired false
 	// and POST /setup answers 409 setup_complete. main always sets it.
 	Setup *setup.Service
+
+	// Move an install (LAUN-249, decisions-T46): the export ticket and
+	// stream under /platform/move and the public POST /setup/restore. Nil:
+	// they answer 404. main sets it.
+	Move *moveapi.Service
 
 	// Platform settings: mail provider and sign-up mode. Nil:
 	// the /platform routes answer 404. main always sets it.
@@ -170,6 +176,12 @@ func (s *Server) Routes() chi.Router {
 		// admin token, so it is never idempotent. It reads no cookie.
 		r.Get("/setup", s.getSetup)
 		r.With(idempotency.Reject).Post("/setup", s.completeSetup)
+		// Restore a bundle into the empty install (LAUN-249, public). The setup
+		// link (X-Launchpad-Setup-Token) is the credential and is checked before
+		// the body is read; no limiter and no Idempotency-Key middleware sit in
+		// front of it (idempotency.Reject only refuses the header: the answer
+		// holds a session and a token). It streams, so it reads no JSON.
+		r.With(idempotency.Reject).Post("/setup/restore", s.restoreMove)
 		// Sign-up requests and invite acceptance (public;
 		// decisions-T12). The /auth/otp shape: JSON only, never
 		// idempotent (accept returns a session), a floor and limits, an
@@ -243,6 +255,14 @@ func (s *Server) Routes() chi.Router {
 				r.Get("/admins", s.listPlatformAdmins)
 				r.With(idempotency.Reject).Post("/admins", s.addPlatformAdmin)
 				r.Delete("/admins/{user}", s.removePlatformAdmin)
+
+				// Move the install (LAUN-249, decisions-T46): a human platform admin
+				// only (an agent is refused even with the flag). The POST holds the
+				// passphrase and the ticket, so it is never idempotent; the GET
+				// streams the bundle once. No event.
+				noAgents := refuseAgentsWith("moving an install is not available to agent users")
+				r.With(noAgents, idempotency.Reject).Post("/move/export", s.startMoveExport)
+				r.With(noAgents).Get("/move/export/{ticket}", s.downloadMoveExport)
 
 				// Scheduled backups (LAUN-69, decisions-T16 #43). They dial nothing:
 				// probe, test, exchange and run only queue rows for offsite. Every

@@ -74,7 +74,7 @@ Use this to try Launchpad on one computer. It uses plain HTTP on
 `silo` (the bundled S3-compatible file store). Do not expose it.
 
 ```bash
-git clone https://github.com/kraetos10/launchpad.git
+git clone https://github.com/Launchingpad/launchpad.git
 cd launchpad/server
 AUTH_FIXED_OTP=000000 docker compose -p launchpad-dev up -d --build
 ```
@@ -114,7 +114,7 @@ the data too.
    host names when it asks. They have no default.
 
    ```bash
-   git clone https://github.com/kraetos10/launchpad.git
+   git clone https://github.com/Launchingpad/launchpad.git
    cd launchpad
    deploy/deploy.sh
    ```
@@ -196,7 +196,7 @@ installs everything.
 2. **Add the marketplace and install the plugin.**
 
    ```bash
-   claude plugin marketplace add kraetos10/launchpad
+   claude plugin marketplace add Launchingpad/launchpad
    claude plugin install launchpad@launchpad-mcp
    ```
 
@@ -229,7 +229,7 @@ install script from the latest release, read it, then run it. It installs to
 `~/.local/bin`; run it again to update.
 
 ```bash
-curl -fsSLO https://github.com/kraetos10/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh
+curl -fsSLO https://github.com/Launchingpad/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh
 ```
 
 Then put the token in your environment (never paste it in chat, never commit

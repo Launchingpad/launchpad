@@ -150,7 +150,7 @@ Prerequisites: Docker Engine with Compose v2.20 or newer, `git`, `curl`,
 `127.0.0.1` and `DEPLOY_BIND_ADDR`).
 
 ```bash
-git clone https://github.com/kraetos10/launchpad.git
+git clone https://github.com/Launchingpad/launchpad.git
 cd launchpad
 deploy/deploy.sh
 ```
@@ -1842,6 +1842,128 @@ worker's `BACKUP_ALLOW_PRIVATE_CIDRS` applies. The container's default gateway a
 Do this once a quarter, on a spare machine or the production host (it restores into a scratch database and drops it):
 `--verify-only latest`, then the full command with the same flags, and read the `rows` lines, the migration
 version and the dump age. `make restore-test` runs the same path against a fake remote on every CI run.
+
+## Move to a new server
+
+Move a whole install (database and attachment files) to a new, empty server
+with one encrypted file. It is not a backup: it is a way to change hosts.
+Rules: [`internal/decisions-T46-move-server.md`](internal/decisions-T46-move-server.md).
+
+**Before you start**
+
+- Install the SAME release on the new server: the same git commit for
+  `deploy.sh`, the same `LAUNCHPAD_VERSION` for the root compose stack. The
+  migration version is what gates the import: a different one is refused with
+  `bundle_version_mismatch`. Update the old server first if needed.
+- The new server must be empty: deployed, with no user yet. A fresh deploy
+  logs one setup link (`deploy/deploy.sh --setup-link` prints a new one).
+- The new server needs its own `deploy/.env` keys. They may differ from the
+  old ones: sealed secrets (mail, chat, push, git, backup settings) are
+  opened on the old server and sealed again on the new one.
+- Both servers need free memory for the passphrase step: about 256 MiB for
+  about one second, on the export and again on the import (age scrypt).
+  Size the `app` container for it.
+- One app process serves each install. The export ticket is held in memory,
+  so do not put two app instances behind one database.
+- Stop using the old server before the final export. The old server keeps
+  taking writes while the export runs (there is no write freeze in this
+  version), and anything written after the snapshot is not in the file.
+
+**Steps (web)**
+
+1. On the old server, sign in as a platform admin (not an agent token).
+   **Settings**, **Platform**, **Move server**: choose whether to include
+   attachments, then **Make move file**. The page shows the passphrase ONCE
+   and starts the download. Copy the passphrase and keep it apart from the
+   file. A bundle without its passphrase is unreadable, and there is no
+   recovery.
+2. Open the setup link of the new server. On `/setup` choose **Restore from a
+   move file**, pick the file, enter the passphrase and start. Keep the tab
+   open: a large file takes as long as the disk and the link need.
+3. On success you are signed in as the admin who exported (or the oldest
+   platform admin who is an org admin). Check the issue counts in the summary.
+4. Finish the move by hand (see "What is not moved").
+
+**Big installs: the command line.** It needs no browser and no proxy. The
+app container has a read-only root and a RAM `/tmp`, so use the work volume
+`/work/import` for the file. The command is `/bin/server` (as `--setup-link`
+uses). Define a shell function once on each host (use your project name;
+the default is `launchpad`):
+
+```bash
+dc() { docker compose -p launchpad -f deploy/docker-compose.yml --env-file deploy/.env "$@"; }
+```
+
+On the old host:
+
+```bash
+dc exec -T app /bin/server move-export /work/import/move.lpmove </dev/null
+# the passphrase is printed ONCE on stdout; copy it now
+dc cp app:/work/import/move.lpmove ./move.lpmove
+dc exec -T app rm /work/import/move.lpmove
+```
+
+Copy `move.lpmove` to the new host (the same release, empty, app running),
+then write it into the volume AS THE APP USER (the app runs as uid 10001 and
+has no capabilities, so `dc cp`, which makes a root-owned 0600 file, would
+leave a file it cannot read):
+
+```bash
+dc exec -T app sh -c 'cat > /work/import/move.lpmove' < ./move.lpmove
+dc exec -it app /bin/server move-import /work/import/move.lpmove   # asks for the passphrase
+dc exec -T app rm /work/import/move.lpmove
+```
+
+`move-import` reads the passphrase from a hidden prompt, which needs a
+terminal (`exec -it`, as above), or from the first line of stdin with
+`--passphrase-stdin` (then use `exec -T`); it is never an argument. `move-export`
+also takes `--no-attachments` and `--user NAME`. It never overwrites a file.
+Delete the bundle and forget the passphrase when the move is done. With the
+CLI the import makes no web session: sign in with an email code, or mint a
+token with `deploy/deploy.sh --mint-token`.
+
+The root `docker-compose.yml` stack (project `launchpad-compose`, see
+[`self-hosting.md`](self-hosting.md)) has the same app container, the same
+read-only root and the same `/work/import` volume. Use the same commands with
+this function instead:
+
+```bash
+dc() { docker compose -p launchpad-compose -f docker-compose.yml --env-file .env "$@"; }
+```
+
+(Run it in the folder that holds `docker-compose.yml` and `.env`.)
+
+**Limits in the stack.** `deploy/nginx/default.conf.template` allows an
+unlimited body, no request buffering and one-hour timeouts on
+`POST /api/v1/setup/restore` ONLY, and streams the export download unbuffered
+(`/api/v1/platform/move/export/*`, with no access log and the error log at
+`crit`: the one-time ticket is in that path; a `crit` line could still quote
+it, and the ticket is single use and lives 5 minutes). Every other API path keeps the 2 MiB limit.
+`deploy/test-move-nginx.sh` proves a 3 GiB upload and download through that
+file. **Your outer proxy** (the one that ends TLS; its own access log WILL hold the
+ticket path: the ticket is single use and expires in 5 minutes, but do not
+ship that log anywhere public during a move) needs the same on those
+two paths: no body size limit, no request or response buffering, read and
+send timeouts of an hour or more. In nginx: `client_max_body_size 0;
+proxy_request_buffering off; proxy_buffering off; proxy_read_timeout 1h;
+proxy_send_timeout 1h;`. A cloud proxy with a body cap (for example 100 MB)
+will cut the upload: use the command line then.
+
+**What is NOT moved**
+
+- Web sessions. Everyone signs in again. API tokens and agent tokens do move
+  (their hashes), so scripts keep working once DNS points at the new server.
+- Git webhooks. Each host still sends to the OLD URL. Edit the webhook of every
+  connected repository to the new address.
+- DNS, the outer proxy and TLS certificates. Point the names at the new server
+  when you are ready.
+- Backups. Backup destinations come across switched OFF and the new install
+  is a new backup source. Turn each destination on again under **Settings**,
+  **Platform**, and check the first run. Old dump files stay on the old host.
+- Pending notification and chat outboxes (they would send twice).
+
+After the move works, shut down the old server. Do not run both with the same
+chat, mail or push settings for long: both would send.
 
 ## Remove a deploy and start over (`--nuke`)
 

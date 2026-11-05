@@ -200,6 +200,7 @@ describe('settings sidebar', () => {
       'Personal webhooks',
       'Appearance',
       'Platform',
+      'Move server',
       'Backups',
     ]);
   });

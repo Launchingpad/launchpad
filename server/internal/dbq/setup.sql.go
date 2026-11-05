@@ -108,6 +108,23 @@ func (q *Queries) LockSetup(ctx context.Context) error {
 	return err
 }
 
+const peekSetupToken = `-- name: PeekSetupToken :one
+SELECT EXISTS (
+  SELECT 1 FROM setup_tokens
+  WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
+) AS valid
+`
+
+// scope: none
+// Reads a link without using it (LAUN-249: the restore route checks the link
+// before it reads the upload; the import transaction then consumes it).
+func (q *Queries) PeekSetupToken(ctx context.Context, tokenHash []byte) (bool, error) {
+	row := q.db.QueryRow(ctx, peekSetupToken, tokenHash)
+	var valid bool
+	err := row.Scan(&valid)
+	return valid, err
+}
+
 const setPlatformAdmin = `-- name: SetPlatformAdmin :execrows
 UPDATE users SET is_platform_admin = true, updated_at = now()
 WHERE id = $1 AND NOT is_agent AND deactivated_at IS NULL AND NOT is_platform_admin

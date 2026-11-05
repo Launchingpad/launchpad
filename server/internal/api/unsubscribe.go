@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"devops/internal/httpx"
+	"devops/internal/moveapi"
 )
 
 // The public one-click unsubscribe (LAUN-34, decisions-T13 #25).
@@ -39,6 +40,9 @@ const (
 func logPath(r *http.Request) string {
 	if p := r.URL.Path; strings.HasPrefix(p, unsubscribePrefix) {
 		return unsubscribePrefix + "{token}"
+	}
+	if p := r.URL.Path; strings.HasPrefix(p, moveapi.DownloadPrefix) {
+		return moveapi.DownloadPrefix + "{ticket}" // LAUN-249: the export ticket
 	}
 	return r.URL.Path
 }

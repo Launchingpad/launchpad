@@ -162,6 +162,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/setup/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * First-run restore - load a move bundle into this empty install
+         * @description The other way out of setup (LAUN-249, decisions-T46): instead of
+         *     `POST /setup`, load a `.lpmove` bundle made by `POST
+         *     /platform/move/export` (or `server move-export`) on another install at
+         *     the SAME migration version. Public; the setup link is the credential.
+         *
+         *     The request body IS the bundle: send it raw
+         *     (`Content-Type: application/octet-stream`), or as `multipart/form-data`
+         *     whose parts are, in this order, an optional `passphrase` and then
+         *     `file`. It is streamed to the importer with no buffering and no temp
+         *     file; there is no size limit. The setup link token goes in the
+         *     `X-Launchpad-Setup-Token` header (the fragment of the setup link) and
+         *     the passphrase in the `X-Launchpad-Passphrase` header or the first form
+         *     part. Neither is ever a query parameter.
+         *
+         *     The link is checked FIRST, before the body is read: a wrong, expired,
+         *     used or replaced link is `401 invalid_setup_token`; a live link on an
+         *     install that has a user is `409 setup_complete`. No rate limiter and no
+         *     `Idempotency-Key` sit in front (the header is refused with `400`: the
+         *     answer holds a session and a token). The import is one transaction: any
+         *     failure leaves the install in setup state and the link usable.
+         *
+         *     `201` sets the two session cookies (as `POST /setup`) and returns the
+         *     login body plus `token`, a PAT with read, write and admin, no expiry,
+         *     pinned to the first org where the person is an admin. The person is the
+         *     exporting admin when still an active human platform admin and org admin,
+         *     else the oldest such person; with none the restore is refused (`409
+         *     move_blocked`). `token.secret` is shown once. `summary` holds counts.
+         *     Other refusals: `400 bad_passphrase`, `400 bundle_invalid`, `409
+         *     bundle_version_mismatch`, `409 move_blocked` (a key, the object store, or
+         *     an admin is missing).
+         */
+        post: operations["restoreSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/logout": {
         parameters: {
             query?: never;
@@ -3537,6 +3586,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/platform/move/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start an export of the whole install
+         * @description Platform admin only, a human (an agent token is `403`; so is an
+         *     org-pinned token). Makes the passphrase and a one-time download ticket
+         *     and returns both ONCE; neither is stored (the ticket lives in server
+         *     memory as a sha256 for 5 minutes, the passphrase next to it until the
+         *     ticket is used or expires). A new start drops the same caller's older ticket. Nothing
+         *     is exported yet: `GET downloadPath` streams the file. The body is
+         *     optional JSON; `includeAttachments` defaults to true when the server has
+         *     an object store, else false (`true` without a store is `409
+         *     move_blocked`). No `Idempotency-Key` (the answer holds secrets). No event.
+         */
+        post: operations["startMoveExport"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/platform/move/export/{ticket}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Stream the export bundle (once)
+         * @description Same caller rules as the start, and the ticket must be the caller's own.
+         *     Streams the `.lpmove` file (age-encrypted with the passphrase) with
+         *     `Content-Disposition: attachment`; no buffering, no temp file. The ticket is used
+         *     when the stream starts: a second GET, an expired, unknown or another
+         *     person's ticket is `404 not_found`. One export runs at a time (an
+         *     advisory lock): a second one is `409 export_in_progress` and its ticket
+         *     stays valid. A failure after the first byte aborts the connection, so a
+         *     short file is never mistaken for a whole one. `409 move_blocked` before
+         *     the first byte: a key is missing or a stored secret does not open.
+         */
+        get: operations["downloadMoveExport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/platform/settings": {
         parameters: {
             query?: never;
@@ -4780,7 +4885,7 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ErrorCode: "bad_request" | "validation_failed" | "unauthenticated" | "invalid_token" | "token_expired" | "token_revoked" | "insufficient_scope" | "forbidden" | "not_found" | "method_not_allowed" | "conflict" | "version_conflict" | "idempotency_key_reused" | "idempotency_in_progress" | "idempotency_outcome_unknown" | "payload_too_large" | "unsupported_media_type" | "internal_error" | "invalid_code" | "csrf_failed" | "rate_limited" | "login_unavailable" | "attachments_unavailable" | "invalid_setup_token" | "setup_complete" | "mail_send_failed" | "chat_send_failed" | "push_send_failed" | "signup_unavailable" | "invalid_invite" | "stale_placement" | "length_required" | "overloaded" | "integration_limit" | "encryption_unavailable" | "public_url_required" | "integration_exists" | "secret_in_use" | "secret_hash_only" | "repos_mapped" | "integration_changed" | "provider_unreachable" | "provider_unauthorized" | "provider_forbidden" | "provider_rate_limited" | "provider_error" | "job_active" | "import_in_progress" | "dry_run_required" | "linear_unauthorized" | "linear_unreachable" | "no_space" | "backup_unavailable" | "destination_busy" | "team_in_use" | "cycle_conflict" | "cycle_in_use" | "status_in_use" | "status_last_of_kind";
+        ErrorCode: "bad_request" | "validation_failed" | "unauthenticated" | "invalid_token" | "token_expired" | "token_revoked" | "insufficient_scope" | "forbidden" | "not_found" | "method_not_allowed" | "conflict" | "version_conflict" | "idempotency_key_reused" | "idempotency_in_progress" | "idempotency_outcome_unknown" | "payload_too_large" | "unsupported_media_type" | "internal_error" | "invalid_code" | "csrf_failed" | "rate_limited" | "login_unavailable" | "attachments_unavailable" | "invalid_setup_token" | "setup_complete" | "mail_send_failed" | "chat_send_failed" | "push_send_failed" | "signup_unavailable" | "invalid_invite" | "stale_placement" | "length_required" | "overloaded" | "integration_limit" | "encryption_unavailable" | "public_url_required" | "integration_exists" | "secret_in_use" | "secret_hash_only" | "repos_mapped" | "integration_changed" | "provider_unreachable" | "provider_unauthorized" | "provider_forbidden" | "provider_rate_limited" | "provider_error" | "job_active" | "import_in_progress" | "dry_run_required" | "linear_unauthorized" | "linear_unreachable" | "no_space" | "backup_unavailable" | "destination_busy" | "team_in_use" | "cycle_conflict" | "cycle_in_use" | "status_in_use" | "status_last_of_kind" | "export_in_progress" | "bad_passphrase" | "bundle_invalid" | "bundle_version_mismatch" | "move_blocked";
         Error: {
             error: string;
             code: components["schemas"]["ErrorCode"];
@@ -5042,6 +5147,43 @@ export interface components {
             /** @description equals the __Host-odt_csrf cookie; send it as X-CSRF-Token */
             csrfToken: string;
             token: components["schemas"]["CreatedToken"];
+        };
+        /** @description The 201 body of POST /setup/restore (the POST /setup body plus a summary). */
+        SetupRestoreResponse: {
+            user: components["schemas"]["LoginUser"];
+            orgs: components["schemas"]["LoginOrg"][];
+            csrfToken: string;
+            token: components["schemas"]["CreatedToken"];
+            summary: components["schemas"]["MoveSummary"];
+        };
+        /** @description Counts of a restored bundle. */
+        MoveSummary: {
+            migrationVersion: number;
+            appVersion: string;
+            /** Format: date-time */
+            exportedAt: string;
+            tables: number;
+            /** Format: int64 */
+            rows: number;
+            /** Format: int64 */
+            objects: number;
+            attachmentsIncluded: boolean;
+        };
+        StartMoveExportInput: {
+            /** @description default: true when the server has an object store */
+            includeAttachments?: boolean | null;
+        };
+        /** @description Shown once. passphrase and ticket are stored nowhere. */
+        MoveExportStarted: {
+            /** @description eight groups of four base32 characters; keep it apart from the file */
+            passphrase: string;
+            ticket: string;
+            /** @description GET this path (same session or token) to stream the file */
+            downloadPath: string;
+            filename: string;
+            /** Format: date-time */
+            expiresAt: string;
+            includeAttachments: boolean;
         };
         LoginResponse: {
             user: components["schemas"]["LoginUser"];
@@ -8187,6 +8329,70 @@ export interface operations {
                 };
             };
             429: components["responses"]["TooManyRequests"];
+        };
+    };
+    restoreSetup: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description the setup link token (the fragment of the link) */
+                "X-Launchpad-Setup-Token": string;
+                /** @description the bundle passphrase; or send it as the first multipart part `passphrase` */
+                "X-Launchpad-Passphrase"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/octet-stream": string;
+                "multipart/form-data": {
+                    /** @description must be the FIRST part when sent */
+                    passphrase?: string;
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Restored and logged in */
+            201: {
+                headers: {
+                    /** @description `__Host-odt_session` and `__Host-odt_csrf` (two headers; bare names on a local dev server) */
+                    "Set-Cookie"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupRestoreResponse"];
+                };
+            };
+            /** @description bad_request, validation_failed (no passphrase), bad_passphrase, bundle_invalid, or an Idempotency-Key header */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description invalid_setup_token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description setup_complete, bundle_version_mismatch or move_blocked */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
         };
     };
     logout: {
@@ -13757,6 +13963,60 @@ export interface operations {
             400: components["responses"]["BadRequest"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NotFound"];
+        };
+    };
+    startMoveExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StartMoveExportInput"];
+            };
+        };
+        responses: {
+            /** @description Started */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoveExportStarted"];
+                };
+            };
+            400: components["responses"]["BadRequest"];
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            409: components["responses"]["Conflict"];
+        };
+    };
+    downloadMoveExport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ticket: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The bundle */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     getPlatformSettings: {

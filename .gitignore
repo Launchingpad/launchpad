@@ -8,7 +8,10 @@ CLAUDE.local.md
 .DS_Store
 # Scratch folders of the export script and local runs.
 /scratch/
-# A deploy env file may hold secrets (docs/self-hosting.md: deploy/sample.env).
-sample.env
+# An env file may hold secrets.
 *.env
 !*.env.example
+
+# docker-compose.yml (root) local state: data directories and your override.
+/data/
+docker-compose.override.yml
