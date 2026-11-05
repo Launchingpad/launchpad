@@ -32,6 +32,15 @@ UPDATE setup_tokens SET consumed_at = now()
 WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
 RETURNING id;
 
+-- name: PeekSetupToken :one
+-- scope: none
+-- Reads a link without using it (LAUN-249: the restore route checks the link
+-- before it reads the upload; the import transaction then consumes it).
+SELECT EXISTS (
+  SELECT 1 FROM setup_tokens
+  WHERE token_hash = $1 AND consumed_at IS NULL AND expires_at > now()
+) AS valid;
+
 -- name: InsertSetupUser :one
 -- scope: none
 -- The first user of an install: a human platform admin.

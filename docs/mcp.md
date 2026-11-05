@@ -15,11 +15,11 @@ This repository is a Claude Code plugin marketplace. Two commands and a few
 values to set install the MCP server, with no JSON to edit and no binary to copy:
 
 ```bash
-claude plugin marketplace add kraetos10/launchpad
+claude plugin marketplace add Launchingpad/launchpad
 claude plugin install launchpad@launchpad-mcp
 ```
 
-(In a session, `/plugin marketplace add kraetos10/launchpad` and
+(In a session, `/plugin marketplace add Launchingpad/launchpad` and
 `/plugin install launchpad@launchpad-mcp` do the same.)
 
 **Set the values.** `claude plugin install` does not prompt. It prints
@@ -95,7 +95,7 @@ amd64). One script installs it. The same script updates it. Download the
 script, read it, then run it:
 
 ```bash
-curl -fsSLO https://github.com/kraetos10/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh
+curl -fsSLO https://github.com/Launchingpad/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh
 ```
 
 The script:

@@ -58,7 +58,7 @@ bind to `0.0.0.0` on a host with a public address.
 **The host prompts have no default. Type your own host names, or set `WEB_HOST` and `FILES_HOST` first.**
 
 ```bash
-git clone https://github.com/kraetos10/launchpad.git
+git clone https://github.com/Launchingpad/launchpad.git
 cd launchpad
 deploy/deploy.sh
 ```
@@ -144,128 +144,175 @@ Agents). See [`mcp.md`](mcp.md). On the server you can also run
 
 ## Run it from a compose file only
 
-`deploy/deploy.sh` is the supported way to run Launchpad. If you prefer one
-compose file and one env file, `deploy/docker-compose.sample.yml` is a
-sample. Know these limits first:
+`deploy/deploy.sh` is one supported way to run Launchpad. The other is the
+compose file in the repository root. It needs no checkout and builds no image.
+It pulls the released images from GitHub's registry.
 
-- `deploy.sh` does not use it, and `make compose-check` does not cover it.
-  It is a hand-made copy of `deploy/docker-compose.yml`. It can drift from
-  that file, and no CI job checks it.
-- It keeps the same hardening (ports on `127.0.0.1`, no socket mounts,
-  digest-pinned third-party images, internal networks, read-only root file
-  systems).
-- It leaves out the nightly `backup` job and the `offsite` worker, so it makes
-  **no backups**. Add your own (see the end of this section).
-- It serves plain HTTP only. Your own proxy ends TLS (see "Set up the reverse
-  proxy" above).
-- Its project name is `launchpad-sample`. Never run it as `launchpad` (the
-  name `deploy.sh` uses): its volumes have no deploy label, and a stack with
-  the same name would reuse them. Do not set `COMPOSE_PROJECT_NAME` or `-p`
-  to `launchpad`.
+### Quick start
+
+You need Docker with Compose v2.24 or newer, and `curl`. Make a folder and
+get the files from the release you want (here `1.2.3`):
+
+```bash
+mkdir launchpad && cd launchpad
+V=1.2.3
+RAW=https://raw.githubusercontent.com/Launchingpad/launchpad/v$V
+curl -fsSLO "$RAW/docker-compose.yml"
+curl -fsSLO "$RAW/.env.example"
+mkdir -p scripts deploy/nginx deploy/backup
+curl -fsSL "$RAW/scripts/gen-env.sh" -o scripts/gen-env.sh && chmod +x scripts/gen-env.sh
+curl -fsSL "$RAW/deploy/nginx/default.conf.template" -o deploy/nginx/default.conf.template
+curl -fsSL "$RAW/deploy/backup/backup.sh" -o deploy/backup/backup.sh
+scripts/gen-env.sh        # asks for your two host names and the version
+docker compose up -d
+```
+
+(The two files under `deploy/` are config files that the compose file mounts
+read-only. A `git clone` of the repository also has everything.)
+
+`gen-env.sh` writes `.env` (mode 0600) with random secrets. It does not
+overwrite an existing `.env`. It prints no secret. Keep a copy of `.env` off
+the host: a lost `SETTINGS_ENCRYPTION_KEY` or `BACKUP_ENCRYPTION_KEY` cannot be
+rebuilt. To set the values by hand instead, copy `.env.example` to `.env`, set
+every empty value and run `chmod 600 .env`.
+
+`docker compose up -d` pulls the images, makes the data folders, makes the
+silo bucket and the app's silo user (the `silo-init` service), starts the
+app, the web server and the nightly backup. There is no manual step. Then:
+
+1. Set up the reverse proxy (see above). The stack speaks plain HTTP on
+   `127.0.0.1:4001` (web) and `127.0.0.1:4002` (files). Your proxy ends TLS
+   for `WEB_HOST` and `FILES_HOST`.
+2. Open the first-run setup link from the app log:
+   `docker compose logs app | grep 'setup: open'`.
+3. Turn on email login and invites (sections 4 and 5 above). Where those
+   sections say `deploy/.env`, read `.env`.
+
+### What is in it
+
+- `postgres`, `silo` (the S3 API for attachments), `silo-init` (a one-shot),
+  `app`, `web` and `backup`. A one-shot `volume-init` gives the data folders
+  their owners.
+- The same hardening as `deploy/docker-compose.yml`: ports on `127.0.0.1`,
+  read-only root file systems, `cap_drop: ALL`, `no-new-privileges`, internal
+  networks, third-party images pinned by digest, no Docker socket.
+  `make compose-check` checks the file, and a test compares it with
+  `deploy/docker-compose.yml`.
+- Its project name is `launchpad-compose`. Never run it as `launchpad` (the
+  name `deploy.sh` uses). Do not set `COMPOSE_PROJECT_NAME` or `-p` to
+  `launchpad`.
+- It does **not** run the `offsite` worker. That worker needs a database role
+  that only `deploy.sh` makes. The nightly dump works. For off-site copies,
+  copy the backup folder and the files folder to another place yourself.
 - `TRUSTED_PROXY_CIDRS`, `GIT_ALLOW_PRIVATE_PROVIDERS` and
-  `GIT_ALLOW_PRIVATE_CIDRS` pass through from the env file, empty by default,
-  as in the real file. Where steps above say `deploy/.env`, read
-  `deploy/sample.env`.
+  `GIT_ALLOW_PRIVATE_CIDRS` pass through from `.env`, empty by default.
+  [`configuration.md`](configuration.md) lists every variable.
 
-**Docker images.** The images
-`launchpad-api` and `launchpad-web` are not on any registry. The sample uses
-local tags (`pull_policy: never`), so `docker compose pull` does nothing for
-them. You build them on the host that runs the stack.
+### Where the data is
 
-1. Build the images from a checkout, with one tag of your choice:
+The data is in folders on the host, by default under `./data` (next to the
+compose file):
 
-   ```bash
-   git clone https://github.com/kraetos10/launchpad.git && cd launchpad
-   docker build -t launchpad-api:local server
-   docker build -t launchpad-web:local web
-   ```
+| Folder | Variable | Holds |
+|---|---|---|
+| `data/postgres` | `LAUNCHPAD_DB_DIR` | the database |
+| `data/files` | `LAUNCHPAD_FILES_DIR` | the attachments |
+| `data/backups` | `LAUNCHPAD_BACKUP_DIR` | the nightly dumps |
 
-   (`deploy.sh` runs `docker compose build app web`, which builds the same
-   two contexts and tags them `launchpad-api:<commit>` and
-   `launchpad-web:<commit>`.)
-2. Go to `deploy/` and run `cp sample.env.example sample.env && chmod 600
-   sample.env`. Set every value. The required secrets are empty in the
-   example, so compose refuses to start until you fill them. Make each secret
-   with `openssl rand -hex 32`. The silo root user and the app's access key
-   are user names: any word of 3 or more characters works. Never commit
-   `sample.env`.
-3. Start it from the `deploy/` directory (the nginx file is a relative path):
+Set `LAUNCHPAD_DATA_DIR` to move all three, or one variable to move one. Use
+an absolute path for a disk of your choice. The one-shot `volume-init` sets the
+owner of each folder (the database and backup folders to user 70, the files
+folder to user 10001). Do not change the owners by hand while the stack runs.
 
-   ```bash
-   docker compose -f docker-compose.sample.yml --env-file sample.env up -d
-   ```
+Know these limits of bind mounts:
 
-4. Make the silo bucket and the app's silo user, once (script below).
-5. Do the proxy setup, first-run setup and mail steps above. The first-run
-   setup link is in the app log: `docker compose -f docker-compose.sample.yml
-   --env-file sample.env logs app | grep 'setup: open'`.
+- **Docker Desktop on macOS.** A folder in your home directory works. A folder
+  on a network share or an exFAT disk may have no owners and no reliable
+  `fsync`: do not keep the database there.
+- **NFS with root squash.** Root in the container cannot change the owner. Set
+  the owners yourself (70 for the database and backup folders, 10001 for the
+  files folder) and `volume-init` will leave them alone.
+- **SELinux.** Add the `:z` label in an override file, or use named volumes.
+- **Rootless Docker.** The user ids are mapped. Use named volumes.
 
-Step 4 script. `deploy.sh` does this for you; with the sample you run it by
-hand, from `deploy/`. It reads the secrets from `sample.env` (in a subshell,
-so your shell keeps no copy) and sends the app secret on stdin. It is a
-shortened copy of `silo_bootstrap` in `deploy/deploy.sh`, and it is safe to
-run again. It prints one line at the end. To check the result later, run
-`mcli admin user info local <access key>` inside the silo container.
+If bind mounts do not work for you, use named Docker volumes:
+`cp docker-compose.override.example.yml docker-compose.override.yml`. Compose
+reads that file by itself. Start with an empty data folder: the override does
+not move data that is already in `./data`.
 
-```bash
-(
-set -eu
-set -a; . ./sample.env; set +a
-printf '%s\n' "$S3_SECRET_KEY" | docker compose -f docker-compose.sample.yml \
-  --env-file sample.env exec -T \
-  -e "B=$S3_BUCKET" -e "K=$S3_ACCESS_KEY" silo sh -c '
-set -eu
-IFS= read -r app_secret
-export MC_CONFIG_DIR=/tmp/.mcli
-export MC_HOST_local="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@127.0.0.1:9000"
-mcli --quiet mb --ignore-existing "local/$B" >/dev/null
-mcli --quiet anonymous set none "local/$B" >/dev/null
-cat >/tmp/p.json <<EOP
-{"Version":"2012-10-17","Statement":[
- {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::$B"]},
- {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::$B/*"]}]}
-EOP
-mcli --quiet admin policy create local launchpad-app /tmp/p.json >/dev/null
-rm -f /tmp/p.json
-printf "%s\n" "$app_secret" | mcli --quiet admin user add local "$K" >/dev/null
-info="$(mcli --quiet admin user info local "$K" --json)"
-case "$info" in
-*"\"launchpad-app\""*) ;;
-*) mcli --quiet admin policy attach local launchpad-app --user "$K" >/dev/null ;;
-esac
-echo "bucket $B (private), user $K with policy launchpad-app"'
-)
-```
+### Update
 
-To update, build new images with a new tag, set `LAUNCHPAD_VERSION`, take a
-database backup, and run the `up -d` command again. If you edit the nginx
-template, add `--force-recreate web` (the sample cannot detect a changed
-template).
+1. Back up (below).
+2. Set `LAUNCHPAD_VERSION` in `.env` to the new version. Read the release
+   notes first. There is no `latest`.
+3. Run `docker compose pull && docker compose up -d`.
 
-Take a database backup with the stack running (run from `deploy/`; the file
-stays on the host, so keep it somewhere safe):
+The server applies new database migrations when it boots. There is no
+automatic rollback. To go back, restore the backup and set the old version
+(see "Rollback" in [`deploy.md`](deploy.md#rollback) for the ideas; the
+commands there use `deploy.sh`). If you change a config file that the compose
+file mounts (the nginx template or `backup.sh`), add `--force-recreate web`
+(or `backup`): compose cannot see a changed file.
+
+To build the images yourself, clone the repository, uncomment the two
+`build:` lines in `docker-compose.yml`, set `LAUNCHPAD_VERSION` to any tag
+of your choice and run `docker compose up -d --build`.
+
+### Backup and restore
+
+The `backup` service writes `devops-<time>.dump` files (`pg_dump -Fc`) to
+`LAUNCHPAD_BACKUP_DIR` every night at `BACKUP_AT_UTC` (03:15 UTC) and keeps
+`BACKUP_KEEP_DAYS` days (30). Take one now:
 
 ```bash
-docker compose -f docker-compose.sample.yml --env-file sample.env exec -T postgres \
-  pg_dump -U devops -d devops -Fc > launchpad-$(date +%Y%m%d).dump
+docker compose exec backup sh /backup/backup.sh once
 ```
 
-Attachments live in the `launchpad-sample_silo_data` volume: copy that too.
+The dumps and the attachments are on the same disk as the database. Copy
+`data/backups` and `data/files` to another place, and keep a copy of `.env`.
+A dump is readable by user 70 only: copy it as root.
 
-### If images are published later (not decided)
 
-Nothing here is decided. A published image would need:
+To restore a dump into the stack (the dump must be in `LAUNCHPAD_BACKUP_DIR`;
+`<file>` is its name), stop what uses the database, replace the database and
+start again:
 
-- a registry (GitLab container registry, Docker Hub, GHCR or another);
-- a tag rule (a release version and the commit, never only `latest`) and
-  multi-arch builds (amd64 and arm64);
-- a list of who may push, and a CI job that pushes only from protected
-  branches or tags;
-- image signing and a build record (for example cosign), and a scan step;
-- a rule for the compose file: pin images by digest, as the third-party
-  images are today.
+```bash
+docker compose stop app web backup
+docker compose exec -T postgres dropdb -U devops devops
+docker compose exec -T postgres createdb -U devops devops
+docker compose start backup
+docker compose exec -T backup pg_restore --no-owner -d devops /backups/<file>
+docker compose up -d
+```
 
-Until then, build from source as above.
+(`deploy/test-compose-stack.sh` runs these commands on a scratch stack.)
+For a new host, make the stack first with the old `.env`, then copy the dump
+into `data/backups` as root and run the commands above.
+
+Restore the attachments by copying the old files folder to `LAUNCHPAD_FILES_DIR`
+while the stack is stopped, and run `docker compose up -d` (the `volume-init`
+service sets the owner; `silo-init` makes the app's user again). Use the old
+`.env`: the new stack needs the same `SETTINGS_ENCRYPTION_KEY` and
+`BACKUP_ENCRYPTION_KEY`. Test a restore on a scratch stack before you need it.
+
+### Check the stack and remove it
+
+`docker compose config` checks the file and `.env`. `docker compose ps` shows
+the state. `docker compose down` stops the stack and keeps the data folders.
+`docker compose down -v` also removes the `import_work` volume. It does not
+delete the host folders. To delete all data, delete `./data` yourself: that is
+the database, the attachments and every backup.
+
+### Images and the release
+
+The release workflow pushes
+`ghcr.io/launchingpad/launchpad-api:<version>` and
+`ghcr.io/launchingpad/launchpad-web:<version>` for amd64 and arm64 on each
+version tag, with the version and the full commit sha as tags and never
+`latest`. The version is the tag without the `v`. The images carry OCI labels.
+Image signing, SBOMs and a vulnerability scan are future work. The record is
+[`decisions-T45-docker-distribution.md`](internal/decisions-T45-docker-distribution.md).
 
 ## Backups
 
@@ -280,6 +327,32 @@ Until then, build from source as above.
 - Optional encrypted off-site copies (S3, SFTP, WebDAV, Dropbox) are set up by a platform admin under **Settings**, **Platform**. [`deploy.md`](deploy.md) has the runbook.
 - Test a restore: `deploy/restore.sh latest` restores the newest dump into
   a scratch database and counts the rows.
+
+## Move to a new server
+
+To change hosts, export the whole install from **Settings**, **Platform**,
+**Move server** on the old server, then on the new, empty server (same
+release, setup link open) choose **Restore from a move file** on `/setup`.
+The page shows a passphrase once: keep it apart from the file.
+
+- Both servers must run the same release. Stop using the old server before
+  the final export: writes after the export are not in the file.
+- Your own reverse proxy must allow a very large body (no size limit, no
+  request buffering, timeouts of an hour or more) on
+  `POST /api/v1/setup/restore`, and must not buffer or time out the download
+  `GET /api/v1/platform/move/export/*`. The stack's own nginx already does.
+  For a huge install use the command line, which needs no proxy:
+  `server move-export FILE` on the old host, `server move-import FILE` on the
+  new one.
+- The passphrase step uses about 256 MiB of memory for a second on each side.
+- One app process only: the export ticket lives in memory.
+- NOT moved: web sessions (sign in again), git webhooks (edit them to the new
+  URL), DNS and TLS, backup destinations (they arrive switched off).
+
+Full steps and the command line: [`deploy.md`](deploy.md#move-to-a-new-server).
+On the compose-file-only stack the app root is read-only: put the file in
+`/work/import` and run `docker compose -p launchpad-compose exec app
+/bin/server move-import ...` (the exact commands are in that section).
 
 ## Update
 

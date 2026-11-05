@@ -4,7 +4,7 @@ Adds the Launchpad MCP server (issues, comments, documents, attachments) and
 the skill `launchpad-tickets`.
 
 ```bash
-claude plugin marketplace add kraetos10/launchpad
+claude plugin marketplace add Launchingpad/launchpad
 claude plugin install launchpad@launchpad-mcp
 ```
 

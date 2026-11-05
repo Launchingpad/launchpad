@@ -1,14 +1,20 @@
-# Release: build the MCP binary for four systems and publish a GitHub Release.
+# Release: build the MCP binary for four systems and publish a GitHub Release,
+# and push the two container images to GHCR.
 # It runs when a tag that starts with "v" is pushed (for example v1.2.3).
 # The release holds: launchpad-mcp-<os>-<arch> (4 files), SHA256SUMS and
 # install-mcp.sh. Steps to cut a release: docs/releasing-mcp.md.
+# The images (LAUN-246, docs/internal/decisions-T45-docker-distribution.md):
+# ghcr.io/launchingpad/launchpad-api and launchpad-web, amd64 and arm64, tagged
+# with the version (the tag without the v) and the full commit sha. Never
+# latest. The root docker-compose.yml needs LAUNCHPAD_VERSION to be one of them.
 name: release
 
 on:
   push:
     tags: ["v*"]
 
-# The job needs to write the release and nothing else.
+# The mcp job needs to write the release and nothing else. The images job sets
+# its own, smaller permissions (a job-level block replaces this one).
 permissions:
   contents: write
 
@@ -94,3 +100,89 @@ jobs:
             dist/launchpad-mcp-linux-arm64 \
             dist/SHA256SUMS \
             dist/install-mcp.sh
+
+  # The two images, built for amd64 and arm64 and pushed to GHCR. Only this job
+  # may write packages; it cannot write the repository or the release.
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ghcr.io/launchingpad/launchpad-api
+            context: server
+            title: Launchpad API
+            description: The Launchpad API server (also runs the off-site backup worker).
+          - image: ghcr.io/launchingpad/launchpad-web
+            context: web
+            title: Launchpad web
+            description: The Launchpad web app and its nginx server.
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Check the tag and the commit
+        id: ver
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -eu
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "the tag must start with v and a digit" >&2; exit 1 ;;
+          esac
+          case "$TAG" in
+            *[!A-Za-z0-9._+-]*) echo "the tag holds a character that is not allowed" >&2; exit 1 ;;
+          esac
+          commit="$(git rev-parse "refs/tags/${TAG}^{commit}")"
+          git rev-parse --verify --quiet refs/remotes/origin/master >/dev/null || { echo "origin/master was not fetched" >&2; exit 1; }
+          git merge-base --is-ancestor "$commit" refs/remotes/origin/master || { echo "the tag $TAG points at $commit, which is not on master: tag a commit of master" >&2; exit 1; }
+          # The image tag is the version: the tag without the v (as the plugin rule).
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ matrix.image }}
+          # Never latest: the version and the full commit sha only.
+          flavor: latest=false
+          tags: |
+            type=raw,value=${{ steps.ver.outputs.version }}
+            type=sha,format=long,prefix=
+          labels: |
+            org.opencontainers.image.title=${{ matrix.title }}
+            org.opencontainers.image.description=${{ matrix.description }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.version=${{ steps.ver.outputs.version }}
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # A plain two-platform index. Provenance and SBOM attestations are
+          # future work (the decision record).
+          provenance: false
+          sbom: false

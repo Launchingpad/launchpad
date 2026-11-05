@@ -9,7 +9,9 @@ Read the table like this:
 - **Used by**: `server` (the API, `server/cmd/server`), `mcp` (the MCP
   server), `importer`, `migrate` (`server/cmd/migrate`), `deploy` (the
   scripts in `deploy/`, read from the shell or from `deploy/.env`), `dev`
-  (the local stack in `server/docker-compose.yml` and its scripts), `web`
+  (the local stack in `server/docker-compose.yml` and its scripts), `compose`
+  (the root `docker-compose.yml`, read from `.env`; see
+  [`self-hosting.md`](self-hosting.md)), `web`
   (the web app build and its nginx image), `test` (the test suites).
 - **Required**: "yes" means the program stops at start without it.
 - A secret must come from the environment (or `deploy/.env`), never from a
@@ -62,6 +64,16 @@ The production stack sets most server variables for you (see
 | `POSTGRES_PASSWORD` | deploy | generated | yes (generated) | Password of the database user. `deploy.sh` makes it and never makes it again. |
 | `SILO_ROOT_USER` | deploy | generated | yes (generated) | Root user of silo. Never generated again. |
 | `SILO_ROOT_PASSWORD` | deploy | generated | yes (generated) | Root password of silo. Never generated again. |
+| `LAUNCHPAD_VERSION` | compose | none | yes | Release version of the two images (`ghcr.io/launchingpad/launchpad-api` and `launchpad-web`), the tag without the `v`, for example `1.2.3`. No default and no `latest`. Change it to update. |
+| `LAUNCHPAD_DATA_DIR` | compose | `./data` | no | Host folder for the data of the root compose file. A relative path is relative to `docker-compose.yml`. Holds `postgres`, `files` and `backups`. |
+| `LAUNCHPAD_DB_DIR` | compose | `$LAUNCHPAD_DATA_DIR/postgres` | no | Host folder of the database. |
+| `LAUNCHPAD_FILES_DIR` | compose | `$LAUNCHPAD_DATA_DIR/files` | no | Host folder of the attachments (silo's data). |
+| `LAUNCHPAD_BACKUP_DIR` | compose | `$LAUNCHPAD_DATA_DIR/backups` | no | Host folder of the nightly dumps. |
+| `LAUNCHPAD_BIND_ADDR` | compose | `127.0.0.1` | no | Address the two published ports bind to. Read "Set up the reverse proxy" in `self-hosting.md` before you change it. |
+| `LAUNCHPAD_WEB_PORT` | compose | `4001` | no | Host port of the web app (nginx). |
+| `LAUNCHPAD_FILES_PORT` | compose | `4002` | no | Host port of silo (presigned file URLs). |
+| `WEB_HOST`, `FILES_HOST` | compose | none | yes | The two DNS names your proxy serves. No scheme, no path. `scripts/gen-env.sh` asks for them. |
+| `POSTGRES_PASSWORD`, `AUTH_OTP_PEPPER`, `SETTINGS_ENCRYPTION_KEY`, `BACKUP_ENCRYPTION_KEY`, `SILO_ROOT_USER`, `SILO_ROOT_PASSWORD`, `S3_ACCESS_KEY`, `S3_SECRET_KEY` | compose | none | yes | Secrets and silo logins. `scripts/gen-env.sh` makes random values. `S3_BUCKET` (default `launchpad-attachments`) is the bucket that `silo-init` makes. `BACKUP_AT_UTC`, `BACKUP_KEEP_DAYS` and the optional `POSTMARK_*`, `TRUSTED_PROXY_CIDRS`, `GIT_ALLOW_*` work as in the `deploy` rows. |
 | `DEPLOY_ENV_FILE` | deploy | `deploy/.env` | no | Path of the env file the scripts read. |
 | `DEV_OPS_PROJECT` | dev | none | yes, or pass `-p` | Compose project name for `server/docker-compose.yml`. Put it in `server/.env`. `COMPOSE_PROJECT_NAME` also works. |
 | `DEV_OPS_APP_PORT` | dev | `8090` | no | Host port of the API in the local stack (127.0.0.1 only). |
@@ -97,6 +109,9 @@ The production stack sets most server variables for you (see
   with an empty environment (plus a few Docker and proxy variables), so a
   variable such as `LOG_ENV` exported in your shell never reaches the
   production stack. Edit `deploy/.env` instead.
+- **The root compose file** (`docker-compose.yml`) reads `.env`, not
+  `deploy/.env`. Its template is `.env.example`; `scripts/gen-env.sh` fills it.
+  It does not use the `DEPLOY_*` variables.
 - `deploy/.env` also holds `DEPLOY_PROJECT` and the other `deploy` rows.
   `deploy/.env.example` lists the keys with placeholder values.
 - The MCP server also takes a flag: `--profile full` (default) or

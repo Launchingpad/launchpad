@@ -3744,3 +3744,37 @@ Code: `ChangeRequests.tsx`, `changeText.ts` (`repoWebUrl`). Server part: decisio
    member, hostile and mismatched URLs (`javascript:`, `data:`, `ftp:`, user info, another repository, another
    number), a long repository, and `repoWebUrl` cases (subgroups, a path prefix, http, Enterprise, Data
    Center).
+
+## Move server and restore (LAUN-250)
+
+Code: `MoveServerPage.tsx`, `moveText.ts`, `SetupRestore.tsx`, `restoreFromMoveFile` in `api/auth.ts`. Server part:
+decisions-T46.
+
+1. **Settings, Platform, Move server** (`/:org/settings/move`, `access: 'platform'`; a direct visit by anyone else
+   gets "You need platform admin access."). A checkbox "Include attachments" (on by default) and the button "Make
+   move file". With no object store the server answers `409 move_blocked`; the page shows a fixed text that says to
+   clear the box and try again.
+2. **The passphrase is a copy-once modal**, the same flow as the API token (#5 and #6 of "API tokens"): a warning, a
+   copy button, the "I saved the passphrase" box that gates Done, a `beforeunload` guard, and Escape, the close
+   button and a click outside show a hint until the box is ticked. The call is a plain function
+   (`startMoveExport`), not `useMutation`, so no cache holds the passphrase or the ticket; `moveServer.test.tsx`
+   checks both caches, web storage and the URL.
+3. **The download** starts once, when the dialog opens: a hidden anchor to the `downloadPath` with the cookie
+   session. The path must be the export route plus ONE ticket segment (`isDownloadPath`); anything else starts no
+   download. The ticket works once and ends in 5 minutes, so the text says: if the download fails, close the window
+   and make a new file. The checklist (same release, DNS or proxy, webhooks, MCP and mobile clients, writes after
+   the export are lost) stays on the page after the dialog.
+4. **/setup, "Restore from a move file"** is a second option beside "New install". The setup link stays in the URL
+   fragment, then in memory, as before. The passphrase is typed into a `new-password` field, sent in a header, kept
+   in component state only. The file goes with `XMLHttpRequest.send(File)` (streamed, never read into memory; fetch
+   has no upload progress): a progress bar, a Cancel button until the last byte is sent.
+5. **While a restore runs** the toggle is disabled, a new link in the address bar (hashchange) is ignored, a
+   double submit sends one request, and `beforeunload` asks the browser to confirm. Unmounting aborts the upload
+   only before the last byte is sent; after it the request is kept, and a page that is no longer on screen does not
+   start the session (`commitRestoreSession` is called by the mounted page only).
+6. **Errors are fixed texts** (`moveRestoreError`): wrong passphrase, damaged file, other release, blocked, link
+   problems (the existing notice pages). After the last byte, a lost answer or a 5xx says "The result is unknown.
+   The server may have loaded the file. Open the setup page again to check." and never "Nothing was loaded".
+7. **After success** the page reuses the copy-once token screen ("Restore is done", counts only when the server sent
+   a summary) and then goes to `/<org>`, not to the first-run checklist.
+

@@ -72,11 +72,13 @@ restore-test:
 
 # deploy/.env is never deleted or changed by a failed run, and a failed or
 # killed first run leaves no secrets file behind. test-env.sh needs
-# docker and starts no container of any stack; test-offsite.sh (LAUN-72) runs the
+# docker and starts no container of any stack; test-gen-env.sh (LAUN-246) tests scripts/gen-env.sh; test-move-nginx.sh (LAUN-251) streams 3 GiB through the real nginx template (starts 2 containers); test-offsite.sh (LAUN-72) runs the
 # offsite role grants and backup.sh against a throwaway postgres container.
 deploy-test:
 	../deploy/test-env.sh
 	../deploy/test-offsite.sh
+	../deploy/test-gen-env.sh
+	../deploy/test-move-nginx.sh
 	../scripts/test-export.sh
 	../scripts/test-audit.sh
 	../scripts/test-install-mcp.sh
@@ -86,7 +88,7 @@ deploy-test:
 SHELLCHECK_IMAGE ?= koalaman/shellcheck:v0.10.0@sha256:2097951f02e735b613f4a34de20c40f937a6c8f18ecb170612c88c34517221fb
 deploy-lint:
 	docker run --rm -v "$(abspath $(CURDIR)/..)":/mnt -w /mnt $(SHELLCHECK_IMAGE) -x \
-		deploy/deploy.sh deploy/restore.sh deploy/test-restore.sh deploy/test-restore-remote.sh deploy/test-env.sh deploy/test-offsite.sh scripts/install-mcp.sh scripts/test-install-mcp.sh scripts/test-launchpad-plugin.sh plugins/launchpad/scripts/launchpad-mcp plugins/launchpad/lib/install-mcp.sh deploy/check-compose.sh deploy/test-compose-check.sh deploy/lib.sh deploy/backup/backup.sh scripts/export-public.sh scripts/audit-public.sh scripts/test-export.sh scripts/test-audit.sh
+		deploy/deploy.sh deploy/restore.sh deploy/test-restore.sh deploy/test-restore-remote.sh deploy/test-env.sh deploy/test-offsite.sh scripts/install-mcp.sh scripts/test-install-mcp.sh scripts/test-launchpad-plugin.sh plugins/launchpad/scripts/launchpad-mcp plugins/launchpad/lib/install-mcp.sh deploy/check-compose.sh deploy/test-compose-check.sh deploy/example-env.sh deploy/test-gen-env.sh deploy/test-move-nginx.sh deploy/test-compose-stack.sh scripts/gen-env.sh deploy/lib.sh deploy/backup/backup.sh scripts/export-public.sh scripts/audit-public.sh scripts/test-export.sh scripts/test-audit.sh
 
 # BASE_URL and TOKEN: see scripts/smoke.sh.
 smoke:

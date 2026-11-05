@@ -1,9 +1,9 @@
 {
   "name": "launchpad",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Launchpad MCP server (issues, comments, documents, attachments) and a skill for agents",
-  "homepage": "https://github.com/kraetos10/launchpad",
-  "repository": "https://github.com/kraetos10/launchpad",
+  "homepage": "https://github.com/Launchingpad/launchpad",
+  "repository": "https://github.com/Launchingpad/launchpad",
   "author": {
     "name": "Launchpad"
   },

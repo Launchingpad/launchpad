@@ -1,0 +1,323 @@
+# Launchpad from ONE compose file. Not used by deploy.sh (that is
+# deploy/docker-compose.yml, a different stack with a different project name).
+# Guide: docs/self-hosting.md, "Run it from a compose file only".
+#
+#   scripts/gen-env.sh                 # writes .env with random secrets
+#   docker compose up -d               # pulls the images, starts everything
+#
+# What it holds: postgres, silo (the S3 API for attachments), a one-shot
+# `silo-init` (bucket and the app's silo user), the app, the web server and a
+# nightly `backup`. There is no `offsite` worker here: its database role needs
+# a step that only deploy.sh does (docs/internal/decisions-T45-docker-distribution.md).
+#
+# The images come from ghcr.io/launchingpad. LAUNCHPAD_VERSION is required and
+# has no default: there is no `latest`. To build the two images from a checkout
+# instead, see the `build:` lines on `app` and `web`.
+#
+# Data lives in HOST directories (bind mounts), by default under ./data.
+# `volume-init` (one-shot) gives them the owners the services need. See
+# docker-compose.override.example.yml for named volumes.
+#
+# Published ports, and nothing else (deploy/check-compose.sh enforces it):
+#   web   LAUNCHPAD_WEB_PORT   -> nginx: the web app, /api and /healthz
+#   silo  LAUNCHPAD_FILES_PORT -> the S3 API, for presigned URLs only
+# Both speak plain HTTP on LAUNCHPAD_BIND_ADDR (default 127.0.0.1). Your own
+# proxy ends TLS for https://${WEB_HOST} and https://${FILES_HOST} and MUST
+# pass the Host header unchanged.
+#
+# The shared hardening matches deploy/docker-compose.yml. A test compares the
+# two files (deploy/test-compose-check.sh, "drift").
+#
+# Project name: fixed, and NEVER `launchpad` (the name deploy.sh uses). A
+# COMPOSE_PROJECT_NAME in your shell, or `-p`, still wins: do not set either to
+# `launchpad`. The data is in host directories, but the networks and the
+# import_work volume would be shared with a deploy.sh stack of that name.
+name: launchpad-compose
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # One-shot: the data directories on the host belong to root (Docker makes
+  # them) and postgres, silo and the app run as non-root users. A directory
+  # that already has the right owner is left alone (a network disk may refuse
+  # chown). No network.
+  #
+  # NO no-new-privileges here, and ONLY here: the same exception as
+  # deploy/docker-compose.yml (on Linux 7.0 that flag with cap_drop ALL +
+  # cap_add CHOWN stops the exec of the entrypoint). Keep cap_drop ALL,
+  # cap_add CHOWN, network_mode none and restart "no";
+  # deploy/check-compose.sh fails if any of them changes.
+  volume-init:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    user: "0:0"
+    network_mode: none
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        own() { [ "$$(stat -c %u "$$2")" = "$$1" ] || chown "$$1:$$1" "$$2"; }
+        own 70 /db
+        own 70 /backups
+        own 10001 /files
+        own 10001 /import-work
+    volumes:
+      - type: bind
+        source: ${LAUNCHPAD_DB_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/postgres}
+        target: /db
+      - type: bind
+        source: ${LAUNCHPAD_BACKUP_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/backups}
+        target: /backups
+      - type: bind
+        source: ${LAUNCHPAD_FILES_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/files}
+        target: /files
+      # The web import's exports (transient). A named volume: Docker owns it.
+      - import_work:/import-work
+    cap_drop: [ALL]
+    cap_add: [CHOWN]
+    logging: *logging
+    restart: "no"
+
+  postgres:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD missing from .env (run scripts/gen-env.sh)}
+      POSTGRES_DB: devops
+    volumes:
+      - type: bind
+        source: ${LAUNCHPAD_DB_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/postgres}
+        target: /var/lib/postgresql/data
+    networks: [backend]
+    # No ports: only the app and the backup job reach it, on an internal network.
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devops -d devops"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    logging: *logging
+    restart: unless-stopped
+
+  silo:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: "10001:10001"
+    command: server /data
+    environment:
+      HOME: /tmp
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:?SILO_ROOT_USER missing from .env (run scripts/gen-env.sh)}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:?SILO_ROOT_PASSWORD missing from .env (run scripts/gen-env.sh)}
+      # No web console. Browsers may call the S3 API (presigned PUT and GET)
+      # from the web app's origin only.
+      MINIO_BROWSER: "off"
+      MINIO_API_CORS_ALLOW_ORIGIN: https://${WEB_HOST:?WEB_HOST missing from .env}
+    volumes:
+      - type: bind
+        source: ${LAUNCHPAD_FILES_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/files}
+        target: /data
+    networks: [edge]
+    ports:
+      - "${LAUNCHPAD_BIND_ADDR:-127.0.0.1}:${LAUNCHPAD_FILES_PORT:-4002}:9000"
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    logging: *logging
+    restart: unless-stopped
+
+  # One-shot: the attachment bucket and the app's own silo user (bucket-scoped
+  # policy). It is the port of silo_bootstrap in deploy/deploy.sh, without the
+  # off-site user. Safe to run again: every `up` may run it. The secrets reach
+  # it as environment variables of this container only; the script text holds
+  # none (it names ${VARS}), so no secret is in an argument list.
+  silo-init:
+    image: pgsty/silo:RELEASE.2026-09-16T00-00-00Z@sha256:635197cb9f36d01bee221d34d1c7d7960f6a95c48b0b6c01d99cd13bdae51a46
+    user: "10001:10001"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        export MC_CONFIG_DIR=/tmp/.mcli
+        auth="$${MINIO_ROOT_USER}:$${MINIO_ROOT_PASSWORD}"
+        export MC_HOST_local="http://$${auth}@silo:9000"
+        mcli --quiet mb --ignore-existing "local/$${S3_BUCKET}" >/dev/null
+        mcli --quiet anonymous set none "local/$${S3_BUCKET}" >/dev/null
+        cat >/tmp/launchpad-app-policy.json <<EOP
+        {"Version":"2012-10-17","Statement":[
+         {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::$${S3_BUCKET}"]},
+         {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::$${S3_BUCKET}/*"]}]}
+        EOP
+        mcli --quiet admin policy create local launchpad-app /tmp/launchpad-app-policy.json >/dev/null
+        rm -f /tmp/launchpad-app-policy.json
+        printf '%s\n' "$${S3_SECRET_KEY}" | mcli --quiet admin user add local "$${S3_ACCESS_KEY}" >/dev/null
+        info="$$(mcli --quiet admin user info local "$${S3_ACCESS_KEY}" --json)"
+        case "$$info" in
+        *'"launchpad-app"'*) ;;
+        *) mcli --quiet admin policy attach local launchpad-app --user "$${S3_ACCESS_KEY}" >/dev/null ;;
+        esac
+        echo "silo-init: bucket $${S3_BUCKET} (private), user $${S3_ACCESS_KEY} with policy launchpad-app"
+    environment:
+      HOME: /tmp
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:?SILO_ROOT_USER missing from .env (run scripts/gen-env.sh)}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:?SILO_ROOT_PASSWORD missing from .env (run scripts/gen-env.sh)}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET missing from .env}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY missing from .env (run scripts/gen-env.sh)}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY missing from .env (run scripts/gen-env.sh)}
+    networks: [edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      silo:
+        condition: service_healthy
+    logging: *logging
+    restart: "no"
+
+  app:
+    image: ghcr.io/launchingpad/launchpad-api:${LAUNCHPAD_VERSION:?LAUNCHPAD_VERSION missing from .env (a release version such as 1.2.3; there is no latest)}
+    # To build from a checkout instead of pulling, uncomment the next line, set
+    # LAUNCHPAD_VERSION to any tag and run `docker compose up -d --build`:
+    # build: ./server
+    environment:
+      DATABASE_URL: postgres://devops:${POSTGRES_PASSWORD}@postgres:5432/devops?sslmode=disable
+      PORT: "8080"
+      # Fixed, not interpolated: an exported LOG_ENV=local in your shell must
+      # not turn the dev seams on.
+      LOG_ENV: production
+      PUBLIC_BASE_URL: https://${WEB_HOST}
+      WEB_ORIGINS: https://${WEB_HOST}
+      # Optional, empty by default, as in deploy/docker-compose.yml: the
+      # proxies whose X-Forwarded-For the app believes (list every hop), and
+      # the private ranges the git API clients may reach.
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+      GIT_ALLOW_PRIVATE_PROVIDERS: ${GIT_ALLOW_PRIVATE_PROVIDERS:-}
+      GIT_ALLOW_PRIVATE_CIDRS: ${GIT_ALLOW_PRIVATE_CIDRS:-}
+      POSTMARK_SERVER_TOKEN: ${POSTMARK_SERVER_TOKEN:-}
+      POSTMARK_FROM: ${POSTMARK_FROM:-}
+      AUTH_OTP_PEPPER: ${AUTH_OTP_PEPPER:?AUTH_OTP_PEPPER missing from .env (run scripts/gen-env.sh)}
+      # Seals the mail secrets a platform admin stores in the app.
+      SETTINGS_ENCRYPTION_KEY: ${SETTINGS_ENCRYPTION_KEY:?SETTINGS_ENCRYPTION_KEY missing from .env (run scripts/gen-env.sh)}
+      # Seals the backup destinations' secrets. Never change it once set.
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:?BACKUP_ENCRYPTION_KEY missing from .env (run scripts/gen-env.sh)}
+      S3_ENDPOINT: http://silo:9000
+      S3_PUBLIC_ENDPOINT: https://${FILES_HOST:?FILES_HOST missing from .env}
+      S3_BUCKET: ${S3_BUCKET:?S3_BUCKET missing from .env}
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY missing from .env (run scripts/gen-env.sh)}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY missing from .env (run scripts/gen-env.sh)}
+      IMPORT_WORK_DIR: /work/import
+    volumes:
+      - import_work:/work/import
+    networks: [backend, edge]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      silo:
+        condition: service_healthy
+      silo-init:
+        condition: service_completed_successfully
+    logging: *logging
+    restart: unless-stopped
+
+  web:
+    image: ghcr.io/launchingpad/launchpad-web:${LAUNCHPAD_VERSION:?LAUNCHPAD_VERSION missing from .env (a release version such as 1.2.3; there is no latest)}
+    # build: ./web
+    environment:
+      WEB_HOST: ${WEB_HOST}
+      FILES_ORIGIN: https://${FILES_HOST}
+      API_ORIGIN: ""
+    volumes:
+      # Replaces the image's server block with the same-origin one (/api goes
+      # to the app). A config file, read-only. Run compose from this directory.
+      - ./deploy/nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+    networks: [edge]
+    ports:
+      - "${LAUNCHPAD_BIND_ADDR:-127.0.0.1}:${LAUNCHPAD_WEB_PORT:-4001}:8080"
+    read_only: true
+    tmpfs:
+      - /etc/nginx/conf.d
+      - /var/cache/nginx
+      - /var/run
+      - /tmp
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/nginx-health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    depends_on:
+      app:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+  # Nightly pg_dump (custom format) into LAUNCHPAD_BACKUP_DIR, 30 days kept.
+  backup:
+    image: postgres:16.15-alpine@sha256:f4610795587492cd4fb887c2dc3de301b813278bb6f616992061141b5f15ac36
+    user: "70:70"
+    entrypoint: ["/bin/sh", "/backup/backup.sh", "loop"]
+    environment:
+      PGHOST: postgres
+      PGUSER: devops
+      PGDATABASE: devops
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_KEEP_DAYS: ${BACKUP_KEEP_DAYS:-30}
+      BACKUP_AT_UTC: ${BACKUP_AT_UTC:-03:15}
+    volumes:
+      - type: bind
+        source: ${LAUNCHPAD_BACKUP_DIR:-${LAUNCHPAD_DATA_DIR:-./data}/backups}
+        target: /backups
+      # A config file, read-only.
+      - ./deploy/backup/backup.sh:/backup/backup.sh:ro
+    networks: [backend]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    logging: *logging
+    restart: unless-stopped
+
+networks:
+  # Postgres and the backup job: no route out, no published port.
+  backend:
+    internal: true
+  edge: {}
+
+# No deploy.sh label on these volumes on purpose: deploy.sh must never adopt
+# this stack's data.
+volumes:
+  import_work:
