@@ -497,3 +497,4 @@ system db/queries/tokens.sql GetTokenAuthState
 system db/queries/tokens.sql GetTokenByHash
 system db/queries/tokens.sql InsertAPIToken
 system db/queries/tokens.sql TouchTokenLastUsed
+system internal/moveapi/moveapi.go openAccess

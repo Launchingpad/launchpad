@@ -5,7 +5,7 @@ You need a running Docker daemon (Compose v2.20+), `git`, `curl` and `python3`.
 ## 1. Run the deploy script
 
 ```bash
-git clone https://github.com/kraetos10/launchpad.git
+git clone https://github.com/Launchingpad/launchpad.git
 cd launchpad
 deploy/deploy.sh
 ```
@@ -64,8 +64,8 @@ For a trial, use one of these:
 
 - [Self-hosting](self-hosting.md): the server, the proxy, mail and updates.
 - [Agents and MCP](mcp.md): connect an AI agent. For Claude Code run
-  `claude plugin marketplace add kraetos10/launchpad` and
+  `claude plugin marketplace add Launchingpad/launchpad` and
   `claude plugin install launchpad@launchpad-mcp`. For other clients, one
   command installs or updates the MCP binary from a release:
-  `curl -fsSLO https://github.com/kraetos10/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh`.
+  `curl -fsSLO https://github.com/Launchingpad/launchpad/releases/latest/download/install-mcp.sh && less install-mcp.sh && sh install-mcp.sh`.
 - [Development](development.md): run the dev stack and the tests.

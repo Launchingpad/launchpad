@@ -103,6 +103,98 @@ export async function completeSetup(req: SetupRequest): Promise<SetupResult> {
   return { user: b.user, orgs: b.orgs, tokenSecret: b.token.secret };
 }
 
+export interface RestoreInput {
+  /** The setup link token (from the URL fragment). Sent as a header, never in the URL. */
+  token: string;
+  /** The move file passphrase. Sent as a header, never in the URL. */
+  passphrase: string;
+  file: File;
+  /** Upload progress, 0 to 1. */
+  onProgress?: (fraction: number) => void;
+  /** The whole body has left the browser: from now on the server may finish the restore even if this page goes away. */
+  onSent?: () => void;
+  signal?: AbortSignal;
+}
+
+export interface RestoreResult extends SetupResult {
+  csrfToken: string;
+  /** Absent when the server sent none: show no counts rather than invent them. */
+  summary?: { tables: number; rows: number; objects: number; attachmentsIncluded: boolean };
+}
+
+/**
+ * Installs the session of a finished restore in this tab (CSRF token in memory, signed-in user). A separate step
+ * so that only a caller that is still on screen, and so shows the first token, does it.
+ */
+export function commitRestoreSession(r: RestoreResult): void {
+  setMemoryCsrf(r.csrfToken);
+  noteUser(r.user.id);
+  setWritesBlocked(false);
+}
+
+/**
+ * POST /setup/restore: the move file is the raw body. XMLHttpRequest, not fetch, because only XHR reports upload
+ * progress. `send(file)` streams the File from disk; it is never read into memory here. Like `completeSetup`, the
+ * 201 starts a session, and the first admin token goes to the caller only.
+ */
+export function restoreFromMoveFile(inp: RestoreInput): Promise<RestoreResult> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${apiBase()}/api/v1/setup/restore`);
+    xhr.withCredentials = true;
+    xhr.setRequestHeader('X-Launchpad-Setup-Token', inp.token);
+    xhr.setRequestHeader('X-Launchpad-Passphrase', inp.passphrase);
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) inp.onProgress?.(e.loaded / e.total);
+    };
+    xhr.upload.onload = () => inp.onSent?.();
+    xhr.onerror = () => reject(networkError());
+    xhr.onabort = () => reject(networkError());
+    xhr.onload = () => {
+      let body: unknown;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        body = undefined;
+      }
+      const headers = new Headers();
+      const ra = xhr.getResponseHeader('Retry-After');
+      if (ra) headers.set('Retry-After', ra);
+      if (xhr.status < 200 || xhr.status > 299) {
+        reject(toApiError(new Response(null, { status: xhr.status, headers }), body));
+        return;
+      }
+      const b = body as
+        | {
+            user?: SessionUser;
+            orgs?: SessionOrg[];
+            csrfToken?: string;
+            token?: { secret?: string };
+            summary?: RestoreResult['summary'];
+          }
+        | undefined;
+      if (!b?.user || !Array.isArray(b.orgs) || !b.token?.secret) {
+        reject(new ApiError(xhr.status, 'bad_response', 'The server sent an unexpected reply.'));
+        return;
+      }
+      resolve({
+        user: b.user,
+        orgs: b.orgs,
+        tokenSecret: b.token.secret,
+        csrfToken: b.csrfToken ?? '',
+        summary: b.summary,
+      });
+    };
+    inp.signal?.addEventListener('abort', () => xhr.abort(), { once: true });
+    if (inp.signal?.aborted) {
+      reject(networkError());
+      return;
+    }
+    xhr.send(inp.file);
+  });
+}
+
 /**
  * POST /signups. Public, sign-up mode `approval` only. The server answers 202 `{}` in every case, so
  * this resolves with nothing and the caller must not guess anything from the call.

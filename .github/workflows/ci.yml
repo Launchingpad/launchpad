@@ -92,6 +92,37 @@ jobs:
       - name: Build the web image
         run: docker build -t launchpad-web:ci web
 
+  # LAUN-246: the root docker-compose.yml, for real. It builds the two images
+  # from this commit and tags them the way the compose file expects (the
+  # release job pushes the same names to GHCR). Then deploy/test-compose-stack.sh
+  # brings the stack up on high ports with a temp data folder, runs the
+  # smoke test and an attachment round trip, checks that a second `up -d` and
+  # a `down` / `up -d` keep the data, and ends with `down -v`.
+  compose-stack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Render the compose file with the example env
+        run: |
+          set -eu
+          deploy/example-env.sh "$RUNNER_TEMP/example.env"
+          docker compose -f docker-compose.yml --env-file "$RUNNER_TEMP/example.env" config --quiet
+          rm -f "$RUNNER_TEMP/example.env"
+      - name: Build the images with the names the compose file expects
+        run: |
+          docker build -t ghcr.io/launchingpad/launchpad-api:0.0.0-ci server
+          docker build -t ghcr.io/launchingpad/launchpad-web:0.0.0-ci web
+      - name: Bring the stack up, smoke it, restart it, tear it down
+        env:
+          LAUNCHPAD_VERSION: 0.0.0-ci
+          COMPOSE_TEST_PROJECT: launchpad-compose-ci
+          COMPOSE_TEST_WEB_PORT: "14001"
+          COMPOSE_TEST_FILES_PORT: "14002"
+        run: deploy/test-compose-stack.sh
+
   web:
     runs-on: ubuntu-24.04
     timeout-minutes: 15

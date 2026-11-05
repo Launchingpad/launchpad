@@ -259,6 +259,21 @@ export const settingsPages: readonly SettingsPageDef[] = [
     keywords: ['mail', 'login email', 'postmark', 'smtp', 'sign-up mode', 'platform admins', 'test email'],
   },
   {
+    path: 'move',
+    label: 'Move server',
+    group: 'Platform',
+    access: 'platform',
+    keywords: [
+      'move file',
+      'passphrase',
+      'include attachments',
+      'new server',
+      'migrate',
+      'export',
+      'restore',
+    ],
+  },
+  {
     path: 'backups',
     label: 'Backups',
     group: 'Platform',

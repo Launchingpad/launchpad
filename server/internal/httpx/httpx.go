@@ -159,6 +159,17 @@ const (
 	// because it is the last status of its kind.
 	CodeStatusInUse      Code = "status_in_use"
 	CodeStatusLastOfKind Code = "status_last_of_kind"
+	// LAUN-249 (move an install): another export is streaming (409).
+	CodeExportInProgress Code = "export_in_progress"
+	// The passphrase does not open the bundle (400).
+	CodeBadPassphrase Code = "bad_passphrase"
+	// The bundle is damaged, cut short, changed or not a Launchpad bundle (400).
+	CodeBundleInvalid Code = "bundle_invalid"
+	// The bundle was made at another migration version (409).
+	CodeBundleVersionMismatch Code = "bundle_version_mismatch"
+	// The move cannot run here: a key or the object store is missing, a stored
+	// secret does not open, or the bundle has no admin to log in as (409).
+	CodeMoveBlocked Code = "move_blocked"
 )
 
 // Codes lists every registered code, in declaration order.
@@ -184,6 +195,7 @@ var Codes = []Code{
 	CodeBackupUnavailable, CodeDestinationBusy,
 	CodeTeamInUse, CodeCycleConflict, CodeCycleInUse,
 	CodeStatusInUse, CodeStatusLastOfKind,
+	CodeExportInProgress, CodeBadPassphrase, CodeBundleInvalid, CodeBundleVersionMismatch, CodeMoveBlocked,
 }
 
 // ErrorBody is the wire shape of every error.

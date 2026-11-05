@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode, type RefObject } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { completeSetup, fetchSetupRequired, type SetupResult } from '../../api/auth';
+import { SetupRestore } from './SetupRestore';
+import { completeSetup, type RestoreResult, fetchSetupRequired, type SetupResult } from '../../api/auth';
 import { ApiError } from '../../api/errors';
 import { keys } from '../../api/keys';
 import { Spinner } from '../../ui/States';
@@ -95,6 +96,11 @@ export function SetupPage() {
   const [banner, setBanner] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<SetupResult | null>(null);
+  const [mode, setMode] = useState<'new' | 'restore'>('new');
+  const [restored, setRestored] = useState(false);
+  const [summary, setSummary] = useState<RestoreResult['summary']>(undefined);
+  const [restoring, setRestoring] = useState(false);
+  const restoringRef = useRef(false);
   const [saved, setSaved] = useState(false);
   const [copyNote, setCopyNote] = useState<string | null>(null);
 
@@ -111,6 +117,8 @@ export function SetupPage() {
   useEffect(() => {
     const onHash = () => {
       if (!window.location.hash.replace(/^#/, '')) return;
+      // A restore is running with the old link: keep this page and its token as they are.
+      if (restoringRef.current) return;
       setToken(takeToken());
       setPhase((p) => (p === 'token' ? p : 'form'));
       setErrors({});
@@ -237,7 +245,8 @@ export function SetupPage() {
     void _drop;
     qc.setQueryData(keys.session, session);
     setResult(null);
-    nav(`/${session.orgs[0]?.slug ?? ''}/settings/setup`, { replace: true });
+    // A restored install has its own data and checklist state: go to the org, not the first-run checklist.
+    nav(`/${session.orgs[0]?.slug ?? ''}${restored ? '' : '/settings/setup'}`, { replace: true });
   }
 
   if (phase === 'token' && result) {
@@ -245,11 +254,23 @@ export function SetupPage() {
       <main className={styles.page}>
         <div className={styles.card}>
           <h1 className={styles.title} tabIndex={-1} ref={headingRef}>
-            Setup is done
+            {restored ? 'Restore is done' : 'Setup is done'}
           </h1>
+          {restored && (
+            <p>
+              The move file is loaded.
+              {summary &&
+                ` ${summary.rows} rows in ${summary.tables} tables${
+                  summary.attachmentsIncluded
+                    ? `, ${summary.objects} attachment ${summary.objects === 1 ? 'file' : 'files'}`
+                    : ', no attachments'
+                }.`}{' '}
+              You are signed in.
+            </p>
+          )}
           <p>
-            Welcome, {result.user.name}. This is your first admin token. It has read, write and admin access
-            to {result.orgs[0]?.name ?? 'your organisation'}.
+            Welcome, {result.user.name}. This is {restored ? 'a new' : 'your first'} admin token. It has read,
+            write and admin access to {result.orgs[0]?.name ?? 'your organisation'}.
           </p>
           <p role="alert" className={`${ui.banner} ${ui.errorBanner}`}>
             Save this token now. It is not shown again.
@@ -350,47 +371,93 @@ export function SetupPage() {
         <h1 className={styles.title}>
           Set up Launchpad <span aria-hidden="true">🚀</span>
         </h1>
-        <p className={ui.hint}>
-          This makes the first user, the organisation and the first team. You do this one time.
-        </p>
-        <form onSubmit={(e) => void submit(e)} noValidate>
-          <fieldset className={styles.group}>
-            <legend>Your account</legend>
-            {text('username', 'Username', { autoFocus: true, autoCapitalize: 'none', spellCheck: false })}
-            {text('name', 'Name', { autoComplete: 'name' })}
-            {text('email', 'Email', { type: 'email', inputMode: 'email', autoComplete: 'email' })}
-          </fieldset>
-          <fieldset className={styles.group}>
-            <legend>Your organisation</legend>
-            <div className={styles.pair}>
-              {text('orgName', 'Organisation name')}
-              {text('slug', 'Slug', { autoCapitalize: 'none', spellCheck: false })}
-            </div>
-          </fieldset>
-          <fieldset className={styles.group}>
-            <legend>Your first team</legend>
-            <div className={styles.pair}>
-              {text('teamName', 'Team name')}
-              {text('key', 'Team key', { autoCapitalize: 'characters', spellCheck: false })}
-            </div>
-            <p id="setup-key-hint" className={ui.hint}>
-              The key starts every issue number, for example ORB-12.
-            </p>
-          </fieldset>
-          {banner && (
-            <p role="alert" className={`${ui.banner} ${ui.errorBanner}`}>
-              {banner}
-            </p>
-          )}
+        <div className={styles.modes} role="group" aria-label="Setup type">
           <button
-            type="submit"
-            className={`${ui.btn} ${ui.primary}`}
-            disabled={busy}
-            style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+            type="button"
+            className={`${ui.btn} ${mode === 'new' ? ui.primary : ''}`}
+            aria-pressed={mode === 'new'}
+            disabled={restoring}
+            onClick={() => setMode('new')}
           >
-            {busy ? 'Setting up…' : 'Set up Launchpad'}
+            New install
           </button>
-        </form>
+          <button
+            type="button"
+            className={`${ui.btn} ${mode === 'restore' ? ui.primary : ''}`}
+            aria-pressed={mode === 'restore'}
+            disabled={restoring}
+            onClick={() => setMode('restore')}
+          >
+            Restore from a move file
+          </button>
+        </div>
+        {mode === 'restore' && (
+          <SetupRestore
+            token={token}
+            onRestored={(r) => {
+              heldToken = undefined;
+              const { summary: counts, csrfToken: _csrf, ...rest } = r;
+              void _csrf;
+              setRestored(true);
+              setSummary(counts);
+              setResult(rest);
+              setPhase('token');
+            }}
+            onBusy={(b) => {
+              restoringRef.current = b;
+              setRestoring(b);
+            }}
+            onLinkProblem={(kind) => {
+              heldToken = undefined;
+              setPhase(kind === 'invalid' ? 'invalid' : 'complete');
+            }}
+          />
+        )}
+        {mode === 'new' && (
+          <>
+            <p className={ui.hint}>
+              This makes the first user, the organisation and the first team. You do this one time.
+            </p>
+            <form onSubmit={(e) => void submit(e)} noValidate>
+              <fieldset className={styles.group}>
+                <legend>Your account</legend>
+                {text('username', 'Username', { autoFocus: true, autoCapitalize: 'none', spellCheck: false })}
+                {text('name', 'Name', { autoComplete: 'name' })}
+                {text('email', 'Email', { type: 'email', inputMode: 'email', autoComplete: 'email' })}
+              </fieldset>
+              <fieldset className={styles.group}>
+                <legend>Your organisation</legend>
+                <div className={styles.pair}>
+                  {text('orgName', 'Organisation name')}
+                  {text('slug', 'Slug', { autoCapitalize: 'none', spellCheck: false })}
+                </div>
+              </fieldset>
+              <fieldset className={styles.group}>
+                <legend>Your first team</legend>
+                <div className={styles.pair}>
+                  {text('teamName', 'Team name')}
+                  {text('key', 'Team key', { autoCapitalize: 'characters', spellCheck: false })}
+                </div>
+                <p id="setup-key-hint" className={ui.hint}>
+                  The key starts every issue number, for example ORB-12.
+                </p>
+              </fieldset>
+              {banner && (
+                <p role="alert" className={`${ui.banner} ${ui.errorBanner}`}>
+                  {banner}
+                </p>
+              )}
+              <button
+                type="submit"
+                className={`${ui.btn} ${ui.primary}`}
+                disabled={busy}
+                style={{ width: '100%', justifyContent: 'center', marginTop: 12 }}
+              >
+                {busy ? 'Setting up…' : 'Set up Launchpad'}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     </main>
   );

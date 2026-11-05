@@ -133,6 +133,7 @@ describe('settings entry points and gating', () => {
       'Personal webhooks',
       'Appearance',
       'Platform',
+      'Move server',
       'Backups',
     ]);
     expect(within(nav).getByRole('link', { name: 'Platform' })).toBeInTheDocument();

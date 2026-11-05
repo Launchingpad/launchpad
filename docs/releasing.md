@@ -67,7 +67,7 @@ These steps made the first public commit. For every later release, use
 
    ```bash
    cd ~/launchpad-public
-   git remote add github git@github.com:kraetos10/launchpad.git
+   git remote add github git@github.com:Launchingpad/launchpad.git
    git push -u github master
    ```
 
@@ -178,7 +178,7 @@ The scripts never do them.
 1. Settings, Code security: enable **Private vulnerability reporting**.
    `SECURITY.md` and `CODE_OF_CONDUCT.md` point reporters to it.
 2. Allow squash merges only (replace `OWNER/REPO`, for example
-   `kraetos10/launchpad`):
+   `Launchingpad/launchpad`):
 
    ```bash
    gh api -X PATCH repos/OWNER/REPO \

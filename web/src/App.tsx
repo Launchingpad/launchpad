@@ -33,6 +33,7 @@ import { AppearancePage } from './features/settings/AppearancePage';
 import { ProductsPage } from './features/settings/ProductsPage';
 import { ProjectStatusesPage } from './features/settings/ProjectStatusesPage';
 import { ProjectLabelsPage } from './features/settings/ProjectLabelsPage';
+import { MoveServerPage } from './features/settings/MoveServerPage';
 import { PlatformPage } from './features/settings/PlatformPage';
 import { BackupsPage } from './features/settings/backups/BackupsPage';
 import { SettingsIndex, SettingsLayout } from './features/settings/SettingsLayout';
@@ -155,6 +156,7 @@ export function App() {
             <Route path="mcp" element={<McpPage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="platform" element={<PlatformPage />} />
+            <Route path="move" element={<MoveServerPage />} />
             <Route path="backups" element={<BackupsPage />} />
             <Route path="*" element={<NotFound />} />
           </Route>

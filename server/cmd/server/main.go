@@ -25,6 +25,14 @@
 //	                                         (the host path of the 24 hour hold, LAUN-69)
 //	server backup-recipient-cancel --fingerprint F
 //	                                         cancel a pending add or removal at once
+//	server move-export [--no-attachments] [--user NAME] FILE
+//	                                         write the whole install to one encrypted
+//	                                         bundle; the passphrase the server makes is
+//	                                         printed once on stdout (LAUN-248)
+//	server move-import [--passphrase-stdin] FILE
+//	                                         load a bundle into an EMPTY install (no user,
+//	                                         same migration version); the passphrase comes
+//	                                         from a hidden prompt or stdin, never argv or env
 //	server offsite [keygen|rotate-signing|resume|healthcheck|fetch|unpack|verify|decrypt]
 //	                                         the backup uploader and its host commands
 //	                                         (LAUN-71, decisions-T16 #10); no command runs the worker
@@ -67,6 +75,7 @@ import (
 	"devops/internal/idempotency"
 	"devops/internal/importjob"
 	"devops/internal/login"
+	"devops/internal/moveapi"
 	"devops/internal/netguard"
 	"devops/internal/notify"
 	"devops/internal/offsite"
@@ -98,11 +107,15 @@ func main() {
 		os.Exit(backupRecipientCmd(os.Args[2:], os.Stdout, os.Stderr, false))
 	case "backup-recipient-cancel":
 		os.Exit(backupRecipientCmd(os.Args[2:], os.Stdout, os.Stderr, true))
+	case "move-export":
+		os.Exit(moveExportCmd(os.Args[2:], os.Stdout, os.Stderr))
+	case "move-import":
+		os.Exit(moveImportCmd(os.Args[2:], os.Stdin, os.Stdout, os.Stderr))
 	case "offsite":
 		// The backup uploader (LAUN-71, decisions-T16 #10): its own small config.
 		os.Exit(offsite.Main(os.Args[2:], os.Stdin, os.Stdout, os.Stderr, os.Getenv))
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command %q (want serve, setup-link, grant-platform-admin --user <username>, mint-token --org <slug> --user <username> ..., backup-recipient-remove --fingerprint <64 hex>, backup-recipient-cancel --fingerprint <64 hex> or offsite [command])\n", cmd)
+		fmt.Fprintf(os.Stderr, "unknown command %q (want serve, setup-link, grant-platform-admin --user <username>, mint-token --org <slug> --user <username> ..., backup-recipient-remove --fingerprint <64 hex>, backup-recipient-cancel --fingerprint <64 hex>, move-export FILE, move-import FILE or offsite [command])\n", cmd)
 		os.Exit(2)
 	}
 }
@@ -449,6 +462,16 @@ func run() error {
 	})
 	srv.Notify().SetMailReady(notify.MailReady(mailSwitch.Ready, cfg.PublicBaseURL))
 	srv.Setup = setup.New(pool, setup.Options{Floor: loginFloor})
+	// Move the install (LAUN-249): export ticket and stream, restore.
+	moveKs, err := moveKeys(cfg)
+	if err != nil {
+		return err
+	}
+	mv := moveapi.Options{Pool: pool, Keys: moveKs, AppVersion: appVersion(), Log: log}
+	if store != nil { // a nil *S3 in the interface would not be nil
+		mv.Store = store
+	}
+	srv.Move = moveapi.New(mv)
 	// Sign-up requests and invites: their email goes through
 	// the same switch as login codes, on a queue this function owns.
 	signups := signup.New(pool, log, signup.Options{

@@ -295,6 +295,84 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "429": { $ref: "#/components/responses/TooManyRequests" }
 
+  /api/v1/setup/restore:
+    post:
+      tags: [auth]
+      operationId: restoreSetup
+      summary: First-run restore - load a move bundle into this empty install
+      description: |
+        The other way out of setup (LAUN-249, decisions-T46): instead of
+        `POST /setup`, load a `.lpmove` bundle made by `POST
+        /platform/move/export` (or `server move-export`) on another install at
+        the SAME migration version. Public; the setup link is the credential.
+
+        The request body IS the bundle: send it raw
+        (`Content-Type: application/octet-stream`), or as `multipart/form-data`
+        whose parts are, in this order, an optional `passphrase` and then
+        `file`. It is streamed to the importer with no buffering and no temp
+        file; there is no size limit. The setup link token goes in the
+        `X-Launchpad-Setup-Token` header (the fragment of the setup link) and
+        the passphrase in the `X-Launchpad-Passphrase` header or the first form
+        part. Neither is ever a query parameter.
+
+        The link is checked FIRST, before the body is read: a wrong, expired,
+        used or replaced link is `401 invalid_setup_token`; a live link on an
+        install that has a user is `409 setup_complete`. No rate limiter and no
+        `Idempotency-Key` sit in front (the header is refused with `400`: the
+        answer holds a session and a token). The import is one transaction: any
+        failure leaves the install in setup state and the link usable.
+
+        `201` sets the two session cookies (as `POST /setup`) and returns the
+        login body plus `token`, a PAT with read, write and admin, no expiry,
+        pinned to the first org where the person is an admin. The person is the
+        exporting admin when still an active human platform admin and org admin,
+        else the oldest such person; with none the restore is refused (`409
+        move_blocked`). `token.secret` is shown once. `summary` holds counts.
+        Other refusals: `400 bad_passphrase`, `400 bundle_invalid`, `409
+        bundle_version_mismatch`, `409 move_blocked` (a key, the object store, or
+        an admin is missing).
+      security: []
+      parameters:
+        - { name: X-Launchpad-Setup-Token, in: header, required: true, schema: { type: string }, description: "the setup link token (the fragment of the link)" }
+        - { name: X-Launchpad-Passphrase, in: header, required: false, schema: { type: string, maxLength: 256 }, description: "the bundle passphrase; or send it as the first multipart part `passphrase`" }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                passphrase: { type: string, description: "must be the FIRST part when sent" }
+                file: { type: string, format: binary }
+      responses:
+        "201":
+          description: Restored and logged in
+          headers:
+            Set-Cookie:
+              description: "`__Host-odt_session` and `__Host-odt_csrf` (two headers; bare names on a local dev server)"
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SetupRestoreResponse" }
+        "400":
+          description: "bad_request, validation_failed (no passphrase), bad_passphrase, bundle_invalid, or an Idempotency-Key header"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401":
+          description: "invalid_setup_token"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: "setup_complete, bundle_version_mismatch or move_blocked"
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /api/v1/auth/logout:
     post:
       tags: [auth]
@@ -4510,6 +4588,64 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
 
+  # --- platform: move the install (LAUN-249) ---
+  /api/v1/platform/move/export:
+    post:
+      tags: [platform]
+      operationId: startMoveExport
+      summary: Start an export of the whole install
+      description: |
+        Platform admin only, a human (an agent token is `403`; so is an
+        org-pinned token). Makes the passphrase and a one-time download ticket
+        and returns both ONCE; neither is stored (the ticket lives in server
+        memory as a sha256 for 5 minutes, the passphrase next to it until the
+        ticket is used or expires). A new start drops the same caller's older ticket. Nothing
+        is exported yet: `GET downloadPath` streams the file. The body is
+        optional JSON; `includeAttachments` defaults to true when the server has
+        an object store, else false (`true` without a store is `409
+        move_blocked`). No `Idempotency-Key` (the answer holds secrets). No event.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StartMoveExportInput" }
+      responses:
+        "201":
+          description: Started
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MoveExportStarted" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /api/v1/platform/move/export/{ticket}:
+    get:
+      tags: [platform]
+      operationId: downloadMoveExport
+      summary: Stream the export bundle (once)
+      description: |
+        Same caller rules as the start, and the ticket must be the caller's own.
+        Streams the `.lpmove` file (age-encrypted with the passphrase) with
+        `Content-Disposition: attachment`; no buffering, no temp file. The ticket is used
+        when the stream starts: a second GET, an expired, unknown or another
+        person's ticket is `404 not_found`. One export runs at a time (an
+        advisory lock): a second one is `409 export_in_progress` and its ticket
+        stays valid. A failure after the first byte aborts the connection, so a
+        short file is never mistaken for a whole one. `409 move_blocked` before
+        the first byte: a key is missing or a stored secret does not open.
+      parameters:
+        - { name: ticket, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: The bundle
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
   # --- platform: install-wide settings, platform admin only ---
   /api/v1/platform/settings:
     get:
@@ -6250,6 +6386,11 @@ components:
         - cycle_in_use
         - status_in_use
         - status_last_of_kind
+        - export_in_progress
+        - bad_passphrase
+        - bundle_invalid
+        - bundle_version_mismatch
+        - move_blocked
     Error:
       type: object
       required: [error, code]
@@ -6556,6 +6697,43 @@ components:
         orgs: { type: array, items: { $ref: "#/components/schemas/LoginOrg" } }
         csrfToken: { type: string, description: "equals the __Host-odt_csrf cookie; send it as X-CSRF-Token" }
         token: { $ref: "#/components/schemas/CreatedToken" }
+    SetupRestoreResponse:
+      type: object
+      description: The 201 body of POST /setup/restore (the POST /setup body plus a summary).
+      required: [user, orgs, csrfToken, token, summary]
+      properties:
+        user: { $ref: "#/components/schemas/LoginUser" }
+        orgs: { type: array, items: { $ref: "#/components/schemas/LoginOrg" } }
+        csrfToken: { type: string }
+        token: { $ref: "#/components/schemas/CreatedToken" }
+        summary: { $ref: "#/components/schemas/MoveSummary" }
+    MoveSummary:
+      type: object
+      description: Counts of a restored bundle.
+      required: [migrationVersion, appVersion, exportedAt, tables, rows, objects, attachmentsIncluded]
+      properties:
+        migrationVersion: { type: integer, minimum: 0 }
+        appVersion: { type: string }
+        exportedAt: { type: string, format: date-time }
+        tables: { type: integer }
+        rows: { type: integer, format: int64 }
+        objects: { type: integer, format: int64 }
+        attachmentsIncluded: { type: boolean }
+    StartMoveExportInput:
+      type: object
+      properties:
+        includeAttachments: { type: [boolean, "null"], description: "default: true when the server has an object store" }
+    MoveExportStarted:
+      type: object
+      description: Shown once. passphrase and ticket are stored nowhere.
+      required: [passphrase, ticket, downloadPath, filename, expiresAt, includeAttachments]
+      properties:
+        passphrase: { type: string, description: "eight groups of four base32 characters; keep it apart from the file" }
+        ticket: { type: string }
+        downloadPath: { type: string, description: "GET this path (same session or token) to stream the file" }
+        filename: { type: string }
+        expiresAt: { type: string, format: date-time }
+        includeAttachments: { type: boolean }
     LoginResponse:
       type: object
       required: [user, orgs, csrfToken]

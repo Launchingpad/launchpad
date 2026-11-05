@@ -47,8 +47,15 @@ with `v`.
    full `master`); a tag on any other commit stops the release. Then it
    builds `launchpad-mcp-darwin-arm64`, `-darwin-amd64`, `-linux-amd64` and
    `-linux-arm64`, then `SHA256SUMS`, and publishes them with
-   `install-mcp.sh` as a GitHub Release.
-5. Check the release page: six files. Then, on a test machine, run the
+   `install-mcp.sh` as a GitHub Release. A second job (`images`) builds the
+   two container images for amd64 and arm64 and pushes them to
+   `ghcr.io/launchingpad/launchpad-api` and `launchpad-web`, tagged with the
+   version (no `v`) and the full commit sha, never `latest`. Self-hosters set
+   `LAUNCHPAD_VERSION` to that version in `.env`
+   (`docs/internal/decisions-T45-docker-distribution.md`).
+5. Check the release page: six files. Check that the two packages show the new
+   version tag (and that the package is public: set it once in the GitHub
+   package settings, after the first push). Then, on a test machine, run the
    install command from [`mcp.md`](mcp.md) and look at the printed version.
 
 Rules:

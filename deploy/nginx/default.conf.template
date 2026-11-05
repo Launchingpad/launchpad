@@ -87,6 +87,55 @@ server {
     add_header Strict-Transport-Security "max-age=31536000" always;
   }
 
+  # Move an install (LAUN-249): the restore upload and the export download
+  # are whole-install bundles. No size limit, no request or response
+  # buffering (the app streams both; nginx must not spool them to disk), and
+  # reads and sends as long as a slow link needs. The setup link and the
+  # passphrase are headers, so the access log (no headers) never holds them;
+  # the export ticket is in the path of the download (single use, 5 minutes,
+  # and useless without the passphrase).
+  location = /api/v1/setup/restore {
+    client_max_body_size 0;
+    proxy_request_buffering off;
+    proxy_buffering off;
+    set $devops_api http://app:8080;
+    proxy_pass $devops_api;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $devops_forwarded_proto;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 1h;
+    proxy_send_timeout 1h;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+  }
+
+  # No access log here: the log format has $uri, and the one-time download
+  # ticket is part of that path. error_log at crit keeps the error-level lines
+  # (a 413, an upstream timeout, a client that aborts), which quote the request
+  # line, out of the log. A crit line (rare: a worker fault) could still quote
+  # it; the ticket is single use and expires in 5 minutes.
+  location /api/v1/platform/move/export {
+    access_log off;
+    error_log /dev/stderr crit;
+    client_max_body_size 2m;
+    proxy_buffering off;
+    set $devops_api http://app:8080;
+    proxy_pass $devops_api;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $devops_forwarded_proto;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 1h;
+    proxy_send_timeout 1h;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+  }
+
   location = /healthz {
     limit_except GET HEAD { deny all; }
     set $devops_api http://app:8080;

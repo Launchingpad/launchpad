@@ -2,6 +2,5 @@
 .env
 .env.*
 !.env.example
-sample.env
 *.env
 !*.env.example

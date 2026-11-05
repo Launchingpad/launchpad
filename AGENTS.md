@@ -36,6 +36,8 @@ server/
   api/openapi.yaml  the published API; the web client is generated from it
 web/                the React app (Vite, TypeScript)
 deploy/             the production stack: deploy.sh, restore.sh, compose, nginx, backup
+docker-compose.yml  the root compose file: GHCR images, host-directory data, no deploy.sh
+                    (with .env.example, docker-compose.override.example.yml, scripts/gen-env.sh)
 docs/               user and operator docs; docs/internal has decision records
 ```
 
@@ -201,6 +203,8 @@ a first admin token. Rules: `docs/internal/decisions-T8-first-run.md`.
 | Connected accounts | `decisions-T34-connected-accounts.md` | A member's git handle per connection is a claim: display attribution of change requests only, never a permission. One holder per handle per connection (`409` names nobody); admins list and remove links. Own routes refuse agents and emit no event; the admin unlink emits ids only. |
 | Themes (Linear, Paper, Terminal) | `decisions-T42-themes.md` | A per-person, install-wide theme in `user_preferences` (`GET/PUT /me/preferences`, agents `403`, no event); the web sets `<html data-look>` before first paint from `public/theme-init.js` (no inline script, the CSP); Linear sets no attribute and must stay pixel-identical; every theme variant redefines every colour token and passes `themeContrast.test.ts`; fonts are self-hosted OFL woff2 (`web/src/assets/fonts`, `THIRD_PARTY_NOTICES.md`), never fetched from a third party. |
 | Git workflow rules | `decisions-T44-git-workflow.md` | Per team and event (opened, ready, reopened, merged, closed): a target state of the team or no move, optional "only from" states; no rule is the built-in move (review / testing anchors, forward only); a rule with no from set is forward only, only a listed state can leave Done or Canceled; a rule moves once, when the event changes the link; an archived target is flagged and never followed; members read, org admins write, agents neither; `team.updated` with `changes: ["gitWorkflow"]`. |
+| Docker distribution (root compose file) | `decisions-T45-docker-distribution.md` | The root `docker-compose.yml` runs without deploy.sh: project `launchpad-compose` (never `launchpad`), images `ghcr.io/launchingpad/launchpad-{api,web}:${LAUNCHPAD_VERSION}` (required, no `latest`), data in host directories (`LAUNCHPAD_*_DIR`); `check-compose.py --root` allows ONLY those bind mounts and the two read-only config files, and a drift test keeps the shared services equal to `deploy/docker-compose.yml`; `silo-init` makes the bucket and user; no `offsite` worker; `scripts/gen-env.sh` never overwrites and never prints a secret. |
+| Move an install (export, restore) | `decisions-T46-move-server.md` | Same release on both servers, passphrase made by the server, sealed columns re-sealed, backups off after import, no write freeze; `POST /platform/move/export` gives the passphrase and a one-time ticket (memory only, sha256 key, 5 minutes, bound to the caller; humans only, agents `403`); `GET .../export/{ticket}` streams the bundle under one advisory lock; `POST /setup/restore` is public, checks the setup link (header) BEFORE reading the body, streams the upload, takes the passphrase from a header or the first form part (never the query), and mints the session and an admin token in the import transaction. Never log or store the passphrase, ticket or link. |
 | Native apps | `decisions-T22-native.md` | Design only. |
 | Web app | `web-decisions.md` | Page and component decisions. |
 
