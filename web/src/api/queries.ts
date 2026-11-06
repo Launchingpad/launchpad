@@ -405,6 +405,31 @@ export function useCreateAgent() {
   });
 }
 
+/**
+ * Delete an agent (decisions-T47). No event is emitted, so the page refetches what the agent's removal changes:
+ * the member list, the tokens, and the issue, comment and project data that showed it as author or assignee.
+ */
+export function useDeleteAgent() {
+  const qc = useQueryClient();
+  const org = useOrgSlug();
+  return useMutation({
+    mutationFn: (user: string) =>
+      unwrap(client.DELETE('/api/v1/orgs/{org}/agents/{user}', { params: { path: { org, user } } })),
+    onSettled: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: keys.members(org) }),
+        qc.invalidateQueries({ queryKey: keys.tokens(org) }),
+        qc.invalidateQueries({ queryKey: keys.issues(org) }),
+        qc.invalidateQueries({ queryKey: keys.issueDetails(org) }),
+        qc.invalidateQueries({ queryKey: keys.commentsAll(org) }),
+        qc.invalidateQueries({ queryKey: keys.inboxAll(org) }),
+        qc.invalidateQueries({ queryKey: keys.projectsAll(org) }),
+        qc.invalidateQueries({ queryKey: ['org', org, 'projects'] }),
+        qc.invalidateQueries({ queryKey: keys.projectDetails(org) }),
+      ]),
+  });
+}
+
 // ---------- API tokens (admin scope) ----------
 
 /** Tokens pinned to the org. The list never holds a secret. */

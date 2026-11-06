@@ -401,6 +401,12 @@ have the `admin` scope. Its tokens must expire (1 to 365 days). Rules:
 `docs/internal/decisions-T10-agents.md` (agents) and `docs/internal/decisions-T11-web-tokens.md`
 (tokens made in the web app).
 
+An org admin can change the teams an agent sees (Settings, Agents, "Edit
+access") and delete an agent (`DELETE /api/v1/orgs/{org}/agents/{user}`,
+"Delete" in the same table). A delete removes the agent, its tokens and
+its membership for good. Its issues, comments and documents stay with no
+author or assignee. Rules: `docs/internal/decisions-T47-agent-edit-delete.md`.
+
 Do these steps once, after first-run setup. Use the web app. The command
 line way after it is the fallback.
 

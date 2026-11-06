@@ -12,8 +12,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	"devops/internal/auth"
+	"devops/internal/database"
 	"devops/internal/dbq"
 	"devops/internal/httpx"
 )
@@ -165,6 +167,11 @@ func (s *Service) insertPAT(ctx context.Context, orgID uuid.UUID, target UserRef
 		UserID: target.ID, OrgID: &orgID, Kind: auth.KindPAT, Name: name, TokenHash: nt.Hash,
 		Prefix: nt.Prefix, Scopes: scopes, CreatedBy: createdBy, ExpiresAt: expires,
 	})
+	var pg *pgconn.PgError
+	if errors.As(err, &pg) && pg.Code == database.CodeForeignKeyViolation && pg.ConstraintName == "api_tokens_user_id_fkey" {
+		// The user was deleted (DELETE /agents/{user}, decisions-T47) after the lookup: not found.
+		return CreatedToken{}, httpx.NotFound("user")
+	}
 	if err != nil {
 		return CreatedToken{}, fmt.Errorf("insert token: %w", err)
 	}

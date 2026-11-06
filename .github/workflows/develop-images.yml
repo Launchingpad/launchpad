@@ -1,0 +1,85 @@
+# Develop images (LAUN-335, docs/internal/decisions-T45-docker-distribution.md):
+# on a push to the branch `develop`, build the API and web images and push them
+# to GHCR as :develop (moves with each push) and :develop-<short sha> (fixed).
+# Never latest. A CapRover install can track :develop (docs/caprover.md).
+# This is a moving test channel, not a release: a release is a v* tag
+# (release.yml). Same build, login and pinned actions as the images job there.
+name: develop-images
+
+on:
+  push:
+    branches: [develop]
+
+# No job gets more than it sets below.
+permissions:
+  contents: read
+
+# One build per branch at a time; a newer push replaces a queued older one.
+concurrency:
+  group: develop-images
+  cancel-in-progress: false
+
+jobs:
+  images:
+    # Only the public repository owns the GHCR names.
+    if: github.repository == 'Launchingpad/launchpad'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: ghcr.io/launchingpad/launchpad-api
+            context: server
+            title: Launchpad API (develop)
+            description: The Launchpad API server, built from the develop branch. Not a release.
+          - image: ghcr.io/launchingpad/launchpad-web
+            context: web
+            title: Launchpad web (develop)
+            description: The Launchpad web app and its nginx server, built from the develop branch. Not a release.
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+        with:
+          platforms: arm64
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tags and labels
+        id: meta
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          images: ${{ matrix.image }}
+          # Never latest: develop and develop-<short sha> only.
+          flavor: latest=false
+          tags: |
+            type=raw,value=develop
+            type=sha,format=short,prefix=develop-
+          labels: |
+            org.opencontainers.image.title=${{ matrix.title }}
+            org.opencontainers.image.description=${{ matrix.description }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.version=develop
+
+      - name: Build and push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          sbom: false

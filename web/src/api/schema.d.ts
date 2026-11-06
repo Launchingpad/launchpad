@@ -2751,6 +2751,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/orgs/{org}/agents/{user}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description org slug */
+                org: components["parameters"]["Org"];
+                /** @description an agent's user id or username */
+                user: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete an agent user (admin scope)
+         * @description (docs/internal/decisions-T47-agent-edit-delete.md). Hard-deletes an agent
+         *     and its org membership in one transaction. Its tokens, team access, issue
+         *     subscriptions, follows and other per-member rows go with it. Its issues,
+         *     comments, documents and activity stay; their assignee, author or creator
+         *     becomes null. It cannot be undone.
+         *
+         *     Only an agent: a human, an unknown user and another org's user are all
+         *     `404 not_found`, so the route never says whether a human exists. An agent
+         *     that is also a member of another org is `409 conflict`. A repeat is
+         *     `404`; there is no `Idempotency-Key`. Nothing is emitted (there is no
+         *     member event): a client refetches `GET /users`, the tokens and its issue
+         *     lists. An audit log line holds the org, the actor and the ids.
+         */
+        delete: operations["deleteAgent"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/orgs/{org}/tokens": {
         parameters: {
             query?: never;
@@ -13087,6 +13123,33 @@ export interface operations {
                     "application/json": components["schemas"]["Error"];
                 };
             };
+        };
+    };
+    deleteAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description org slug */
+                org: components["parameters"]["Org"];
+                /** @description an agent's user id or username */
+                user: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            401: components["responses"]["Unauthorized"];
+            403: components["responses"]["Forbidden"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["Conflict"];
         };
     };
     listTokens: {

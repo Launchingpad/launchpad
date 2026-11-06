@@ -3621,6 +3621,34 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
 
+  /api/v1/orgs/{org}/agents/{user}:
+    parameters:
+      - { $ref: "#/components/parameters/Org" }
+      - { name: user, in: path, required: true, description: "an agent's user id or username", schema: { type: string } }
+    delete:
+      tags: [users]
+      operationId: deleteAgent
+      summary: Delete an agent user (admin scope)
+      description: |
+        (docs/internal/decisions-T47-agent-edit-delete.md). Hard-deletes an agent
+        and its org membership in one transaction. Its tokens, team access, issue
+        subscriptions, follows and other per-member rows go with it. Its issues,
+        comments, documents and activity stay; their assignee, author or creator
+        becomes null. It cannot be undone.
+
+        Only an agent: a human, an unknown user and another org's user are all
+        `404 not_found`, so the route never says whether a human exists. An agent
+        that is also a member of another org is `409 conflict`. A repeat is
+        `404`; there is no `Idempotency-Key`. Nothing is emitted (there is no
+        member event): a client refetches `GET /users`, the tokens and its issue
+        lists. An audit log line holds the org, the actor and the ids.
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
   /api/v1/orgs/{org}/tokens:
     parameters: [{ $ref: "#/components/parameters/Org" }]
     get:

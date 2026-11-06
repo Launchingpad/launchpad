@@ -170,3 +170,28 @@ hardening).
     a backup into the host folder, and `down -v`. The GitLab pipeline is private
     and has no comparable job (it runs `make compose-check` and `make
     deploy-test`, which now include the new checks), so it is not mirrored.
+
+## Develop images (LAUN-335)
+
+20. **`:develop` is a test channel.** `.github/workflows/develop-images.yml` runs
+    on a push to the branch `develop` and pushes both images to GHCR as
+    `develop` and `develop-<7 char sha>` (amd64 and arm64, same build, login
+    and pinned actions as the `images` job in `release.yml`). `latest=false`.
+    Permissions: `contents: read`, `packages: write` on the job only. It runs
+    only in `Launchingpad/launchpad`. A release tag never moves; `develop` does.
+21. **The rules for a version stay.** `LAUNCHPAD_VERSION` in the root compose
+    file is still required with no default and `check-compose.py` still refuses
+    `latest` and an untagged image; `develop` is a tag, so it passes and no
+    rule changed. The CapRover form accepts a release (`1.2.3`, with an
+    optional suffix), `develop` or `develop-<7 hex>` (`validRegex`), nothing
+    else, so `latest` is refused.
+22. **Only GitHub runs it.** The private GitLab pipeline (`.gitlab-ci.yml`,
+    not exported) cannot push to GHCR. The public export lands on `master`
+    only, so the job fires only when a `develop` branch exists on GitHub (an
+    exported tree pushed to it by hand). Setting that up is an operator step,
+    outside this repository.
+23. **Tracking develop is unsafe by nature.** Migrations run on boot with no
+    rollback, so `docs/caprover.md` ("Track develop") says: back up first, both
+    apps on the same commit, never change the settings or backup keys, and the
+    redeploy steps are untested on a live CapRover.
+

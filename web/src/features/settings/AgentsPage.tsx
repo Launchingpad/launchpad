@@ -7,6 +7,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { CreatedToken, Member } from '../../api/types';
 import { Dialog } from '../../ui/Dialog';
 import { EmptyState, ErrorState, SkeletonRows } from '../../ui/States';
+import { DeleteAgentDialog } from './AgentDelete';
+import { TeamAccessDialog } from './TeamAccessDialog';
 import { TokenForm } from './TokenForm';
 import {
   accessBody,
@@ -51,6 +53,9 @@ export function AgentsPage() {
   const [focusField, setFocusField] = useState<Field | null>(null);
   const [made, setMade] = useState<Member | null>(null);
   const [tokenFor, setTokenFor] = useState<Member | null>(null);
+  const [editing, setEditing] = useState<Member | null>(null);
+  const [deleting, setDeleting] = useState<Member | null>(null);
+  const [note, setNote] = useState<string | null>(null);
   // The secret exists here and in the dialog below, in component state only. Done removes it.
   const [issued, setIssued] = useState<CreatedToken | null>(null);
 
@@ -118,7 +123,7 @@ export function AgentsPage() {
       description={
         <>
           An agent is a user for a program, for example the MCP server. It has no email and cannot sign in. It
-          works with tokens.
+          works with tokens. You can change the teams it sees and delete it.
         </>
       }
       wide
@@ -162,14 +167,40 @@ export function AgentsPage() {
                   <td>{tokens.isSuccess ? liveCount(m) : '—'}</td>
                   <td>{day(m.createdAt)}</td>
                   <td>
-                    <button
-                      type="button"
-                      className={ui.btn}
-                      aria-label={`Create a token for ${m.name}`}
-                      onClick={() => setTokenFor(m)}
-                    >
-                      Create a token
-                    </button>
+                    <div className={styles.rowActions}>
+                      <button
+                        type="button"
+                        className={ui.btn}
+                        aria-label={`Create a token for ${m.name}`}
+                        onClick={() => setTokenFor(m)}
+                      >
+                        Create a token
+                      </button>
+                      {m.teamAccess !== null && (
+                        <button
+                          type="button"
+                          className={ui.btn}
+                          aria-label={`Edit team access for ${m.name}`}
+                          onClick={() => {
+                            setNote(null);
+                            setEditing(m);
+                          }}
+                        >
+                          Edit access
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className={`${ui.btn} ${ui.danger}`}
+                        aria-label={`Delete agent ${m.name}`}
+                        onClick={() => {
+                          setNote(null);
+                          setDeleting(m);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -177,6 +208,10 @@ export function AgentsPage() {
           </table>
         </SettingsCard>
       )}
+
+      <p role="status" className={ui.hint} data-testid="access-note">
+        {note}
+      </p>
 
       <SettingsSection title="Create an agent" id="agent-form-title">
         <SettingsCard padded>
@@ -272,6 +307,18 @@ export function AgentsPage() {
           />
         </Dialog>
       )}
+      {editing && (
+        <TeamAccessDialog
+          key={editing.id}
+          member={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(text) => {
+            setNote(text);
+            setEditing(null);
+          }}
+        />
+      )}
+      {deleting && <DeleteAgentDialog agent={deleting} onClose={() => setDeleting(null)} />}
       {issued && <TokenSecretDialog issued={issued} onDone={() => setIssued(null)} />}
     </SettingsPage>
   );

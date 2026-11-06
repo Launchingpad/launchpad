@@ -13,6 +13,8 @@ admin db/queries/agent_guidance.sql DeleteTeamAgentGuidance
 admin db/queries/agent_guidance.sql GetTeamAgentGuidance
 admin db/queries/agent_guidance.sql UpsertOrgAgentGuidance
 admin db/queries/agent_guidance.sql UpsertTeamAgentGuidance
+admin db/queries/agents.sql CountOtherOrgMemberships
+admin db/queries/agents.sql DeleteAgentUser
 admin db/queries/chat.sql CountChatRateCapped
 admin db/queries/chat.sql CountChatServices
 admin db/queries/chat.sql CountTeamChatServices

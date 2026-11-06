@@ -1,0 +1,182 @@
+captainVersion: 4
+# Launchpad on CapRover: postgres, silo (S3 for attachments), the API and the
+# web app. Guide: docs/caprover.md.
+#
+# GENERATED FILE: edit one-click-app.yml.in, then run
+# deploy/caprover/gen-one-click.sh. A test (test-one-click.sh) fails when
+# this file is out of date.
+#
+# The web app and the API share ONE domain (the session cookie is host-only).
+# The web app runs the production nginx config (deploy/nginx) and sends /api
+# to the API over CapRover's internal name. Only the web app and silo have a
+# public domain. The API and postgres have none.
+services:
+  $$cap_appname-db:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_USER: devops
+      POSTGRES_PASSWORD: $$cap_db_password
+      POSTGRES_DB: devops
+    volumes:
+      - $$cap_appname-db-data:/var/lib/postgresql/data
+    caproverExtra:
+      notExposeAsWebApp: 'true'
+
+  # The S3 API. Its own public host (FILES_HOST): browsers upload and
+  # download with presigned URLs. The boot script makes the bucket and the
+  # API's own bucket-scoped user, then keeps the server in the foreground.
+  # It is the port of `silo-init` in docker-compose.yml. Safe to run again.
+  $$cap_appname-files:
+    caproverExtra:
+      containerHttpPort: '9000'
+      dockerfileLines:
+        - FROM pgsty/silo:RELEASE.2026-09-16T00-00-00Z
+        - CMD ["/bin/sh", "-c", "eval \"$LAUNCHPAD_SILO_BOOT\""]
+    environment:
+      HOME: /tmp
+      MINIO_ROOT_USER: $$cap_silo_root_user
+      MINIO_ROOT_PASSWORD: $$cap_silo_root_password
+      MINIO_BROWSER: 'off'
+      MINIO_API_CORS_ALLOW_ORIGIN: https://$$cap_web_host
+      S3_BUCKET: launchpad-attachments
+      S3_ACCESS_KEY: $$cap_s3_access_key
+      S3_SECRET_KEY: $$cap_s3_secret_key
+      LAUNCHPAD_SILO_BOOT: |
+        set -eu
+        silo server /data &
+        pid=$!
+        until silo healthcheck ready >/dev/null 2>&1; do
+          kill -0 "$pid" 2>/dev/null || exit 1
+          sleep 1
+        done
+        export MC_CONFIG_DIR=/tmp/.mcli
+        export MC_HOST_local="http://${MINIO_ROOT_USER}:${MINIO_ROOT_PASSWORD}@127.0.0.1:9000"
+        mcli --quiet mb --ignore-existing "local/${S3_BUCKET}" >/dev/null
+        mcli --quiet anonymous set none "local/${S3_BUCKET}" >/dev/null
+        cat >/tmp/launchpad-app-policy.json <<EOP
+        {"Version":"2012-10-17","Statement":[
+         {"Effect":"Allow","Action":["s3:GetBucketLocation","s3:ListBucket"],"Resource":["arn:aws:s3:::${S3_BUCKET}"]},
+         {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":["arn:aws:s3:::${S3_BUCKET}/*"]}]}
+        EOP
+        mcli --quiet admin policy create local launchpad-app /tmp/launchpad-app-policy.json >/dev/null
+        rm -f /tmp/launchpad-app-policy.json
+        printf '%s\n' "${S3_SECRET_KEY}" | mcli --quiet admin user add local "${S3_ACCESS_KEY}" >/dev/null
+        info="$(mcli --quiet admin user info local "${S3_ACCESS_KEY}" --json)"
+        case "$info" in
+        *'"launchpad-app"'*) ;;
+        *) mcli --quiet admin policy attach local launchpad-app --user "${S3_ACCESS_KEY}" >/dev/null ;;
+        esac
+        echo "silo boot: bucket ${S3_BUCKET} (private), user ${S3_ACCESS_KEY} with policy launchpad-app"
+        wait "$pid"
+    volumes:
+      - $$cap_appname-files-data:/data
+
+  # The API. No public domain: only the web app calls it.
+  $$cap_appname-api:
+    image: ghcr.io/launchingpad/launchpad-api:$$cap_launchpad_version
+    environment:
+      DATABASE_URL: postgres://devops:$$cap_db_password@srv-captain--$$cap_appname-db:5432/devops?sslmode=disable
+      PORT: '8080'
+      LOG_ENV: production
+      PUBLIC_BASE_URL: https://$$cap_web_host
+      WEB_ORIGINS: https://$$cap_web_host
+      AUTH_OTP_PEPPER: $$cap_otp_pepper
+      SETTINGS_ENCRYPTION_KEY: $$cap_settings_key
+      BACKUP_ENCRYPTION_KEY: $$cap_backup_key
+      POSTMARK_SERVER_TOKEN: $$cap_postmark_token
+      POSTMARK_FROM: $$cap_postmark_from
+      S3_ENDPOINT: http://srv-captain--$$cap_appname-files:9000
+      S3_PUBLIC_ENDPOINT: https://$$cap_files_host
+      S3_BUCKET: launchpad-attachments
+      S3_REGION: us-east-1
+      S3_ACCESS_KEY: $$cap_s3_access_key
+      S3_SECRET_KEY: $$cap_s3_secret_key
+      IMPORT_WORK_DIR: /work/import
+    volumes:
+      - $$cap_appname-import-work:/work/import
+    depends_on:
+      - $$cap_appname-db
+      - $$cap_appname-files
+    caproverExtra:
+      notExposeAsWebApp: 'true'
+
+  # The web app. The stock image serves static files only. At start, the
+  # command writes the production nginx config (from the variable below, the
+  # file deploy/nginx/default.conf.template with the API host changed) over
+  # the image's template, then starts the image's own entrypoint, which fills
+  # in WEB_HOST and FILES_ORIGIN. The entrypoint only runs its config step
+  # when its first argument is `nginx`, so the command calls it that way.
+  $$cap_appname:
+    caproverExtra:
+      containerHttpPort: '8080'
+      dockerfileLines:
+        - FROM ghcr.io/launchingpad/launchpad-web:$$cap_launchpad_version
+        - CMD ["/bin/sh", "-c", "printf '%s\\n' \"$LAUNCHPAD_NGINX_CONF\" > /etc/nginx/templates/default.conf.template && exec /docker-entrypoint.sh nginx -g 'daemon off;'"]
+    environment:
+      WEB_HOST: $$cap_web_host
+      FILES_ORIGIN: https://$$cap_files_host
+      API_ORIGIN: ''
+      LAUNCHPAD_NGINX_CONF: |
+@@NGINX_CONF@@
+    depends_on:
+      - $$cap_appname-api
+
+caproverOneClickApp:
+  displayName: Launchpad
+  isOfficial: false
+  description: Self-hosted issue tracker (web app, API, Postgres, S3 file store).
+  instructions:
+    start: |-
+      Launchpad needs TWO public hosts: one for the web app and the API, one
+      for the file store. Create both DNS records first (they point at this
+      CapRover server).
+    end: |-
+      The app is installed. Next (docs/caprover.md): 1) add the domain
+      WEB_HOST to the web app and FILES_HOST to the "-files" app, enable
+      HTTPS on both. 2) open the "-api" app logs, copy the line
+      "setup: open ..." and open the link.
+  variables:
+    - id: $$cap_launchpad_version
+      label: Launchpad version
+      description: A release such as 1.2.3, or develop to track the develop branch (a test channel, not a release). There is no latest.
+      validRegex: /^([0-9]+\.[0-9]+\.[0-9]+([.+-][A-Za-z0-9.+-]+)?|develop|develop-[0-9a-f]{7})$/
+    - id: $$cap_web_host
+      label: WEB_HOST
+      description: Host for the web app and the API, e.g. launchpad.example.com
+      validRegex: /^[a-z0-9.-]+$/
+    - id: $$cap_files_host
+      label: FILES_HOST
+      description: Host for attachments, e.g. launchpad-files.example.com
+      validRegex: /^[a-z0-9.-]+$/
+    - id: $$cap_db_password
+      label: Postgres password
+      defaultValue: $$cap_gen_random_hex(32)
+    - id: $$cap_otp_pepper
+      label: Login code pepper
+      defaultValue: $$cap_gen_random_hex(64)
+    - id: $$cap_settings_key
+      label: Settings encryption key (never change)
+      defaultValue: $$cap_gen_random_hex(64)
+    - id: $$cap_backup_key
+      label: Backup encryption key (never change)
+      defaultValue: $$cap_gen_random_hex(64)
+    - id: $$cap_silo_root_user
+      label: File store admin user
+      defaultValue: $$cap_gen_random_hex(8)
+    - id: $$cap_silo_root_password
+      label: File store admin password
+      defaultValue: $$cap_gen_random_hex(32)
+    - id: $$cap_s3_access_key
+      label: File store app user
+      defaultValue: $$cap_gen_random_hex(10)
+    - id: $$cap_s3_secret_key
+      label: File store app secret
+      defaultValue: $$cap_gen_random_hex(32)
+    - id: $$cap_postmark_token
+      label: Postmark server token (optional, can be set later in the app)
+      defaultValue: ''
+      validRegex: /.*/
+    - id: $$cap_postmark_from
+      label: Mail from address (optional)
+      defaultValue: ''
+      validRegex: /.*/

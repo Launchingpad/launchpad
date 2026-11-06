@@ -233,3 +233,130 @@ func TestAgents_AfterFirstRunSetup(t *testing.T) {
 		t.Fatal("setup is open again")
 	}
 }
+
+// DELETE /orgs/{org}/agents/{user} (docs/internal/decisions-T47-agent-edit-delete.md).
+
+// TestAgents_Delete: an agent that owns rows in many tables is deleted by id.
+// Its tokens, membership and per-member rows go; its issues, comments and
+// documents stay with a null author, creator and assignee.
+func TestAgents_Delete(t *testing.T) {
+	e := newEnvWith(t, envOpts{logLevel: -4}) // slog.LevelDebug: the audit line is Info
+	var m tracker.Member
+	e.must(201, e.do("POST", agentsPath, e.chen, map[string]any{"username": "doomed", "name": "Doomed", "teamAccess": "selected", "teams": []string{"ORB"}})).json(t, &m)
+	var tok tracker.CreatedToken
+	e.must(201, e.do("POST", "/api/v1/orgs/orbit/tokens", e.chen, map[string]any{"name": "mcp", "scopes": []string{"read", "write"}, "user": "doomed", "expiresInDays": 30})).json(t, &tok)
+
+	// Rows the agent made.
+	made := e.createIssue(tok.Secret, map[string]any{"title": "made by the agent"})
+	e.must(201, e.do("POST", "/api/v1/orgs/orbit/issues/"+made.Identifier+"/comments", tok.Secret, map[string]any{"body": "agent comment"}))
+	var proj tracker.Project
+	e.must(201, e.do("POST", O+"/projects", e.chen, map[string]any{"name": "Led", "teams": []string{"ORB"}})).json(t, &proj)
+	var doc tracker.Document
+	e.must(201, e.do("POST", O+"/documents", tok.Secret, map[string]any{"title": "agent doc", "projectId": proj.ID})).json(t, &doc)
+	// Rows assigned to it, and rows only SQL can make.
+	assigned := e.createIssue(e.chen, map[string]any{"title": "for the agent", "assignee": "doomed"})
+	mustExec(t, e, `UPDATE projects SET lead_id = $1 WHERE id = $2`, m.ID, proj.ID)
+	mustExec(t, e, `INSERT INTO issue_subscriptions (org_id, issue_id, user_id, state, reason) VALUES ($1, $2, $3, 'subscribed', 'manual')`, e.orgID, assigned.ID, m.ID)
+	mustExec(t, e, `INSERT INTO notifications (org_id, recipient_id, actor_id, issue_id, kind, dedupe_key, inbox) VALUES ($1, $2, $3, $4, 'comment', 't47', true)`, e.orgID, e.user("chen").ID, m.ID, assigned.ID)
+	mustExec(t, e, `INSERT INTO issue_activity (org_id, issue_id, actor_id, kind) VALUES ($1, $2, $3, 'title')`, e.orgID, made.ID, m.ID)
+	mustExec(t, e, `INSERT INTO project_updates (org_id, project_id, author_id, health, body) VALUES ($1, $2, $3, 'on_track', 'x')`, e.orgID, proj.ID, m.ID)
+	if n := e.countRows(`SELECT count(*) FROM events WHERE actor_id = $1`, m.ID); n == 0 {
+		t.Fatal("setup: no event by the agent")
+	}
+	eventsBefore := e.countRows(`SELECT count(*) FROM events`)
+
+	// Scope: the member agent (write) cannot delete; nor can a read token.
+	e.must(403, e.do("DELETE", agentsPath+"/doomed", e.claude, nil))
+	e.must(403, e.do("DELETE", agentsPath+"/doomed", tok.Secret, nil))
+	r := e.must(204, e.do("DELETE", agentsPath+"/"+m.ID.String(), e.chen, nil))
+	if len(r.body) != 0 {
+		t.Fatalf("body %q", r.body)
+	}
+	// The audit line names ids, never a secret.
+	logs := e.logs.String()
+	if !strings.Contains(logs, "audit: agent deleted") || !strings.Contains(logs, m.ID.String()) {
+		t.Fatalf("audit line missing:\n%s", logs)
+	}
+	if strings.Contains(logs, tok.Secret) {
+		t.Fatal("the token is in the server log")
+	}
+	for _, q := range []string{
+		`SELECT count(*) FROM users WHERE id = $1`,
+		`SELECT count(*) FROM org_members WHERE user_id = $1`,
+		`SELECT count(*) FROM api_tokens WHERE user_id = $1`,
+		`SELECT count(*) FROM team_members WHERE user_id = $1`,
+		`SELECT count(*) FROM issue_subscriptions WHERE user_id = $1`,
+	} {
+		if n := e.countRows(q, m.ID); n != 0 {
+			t.Fatalf("%s: %d rows left", q, n)
+		}
+	}
+	// The token is dead, the work stays and points at nobody.
+	e.must(401, e.do("GET", "/api/v1/me", tok.Secret, nil))
+	got := e.issueFull(made.Identifier)
+	if got.Creator != nil {
+		t.Fatalf("creator = %+v, want null", got.Creator)
+	}
+	if got := e.issueFull(assigned.Identifier); got.Assignee != nil {
+		t.Fatalf("assignee = %+v, want null", got.Assignee)
+	}
+	if n := e.countRows(`SELECT count(*) FROM comments WHERE author_id IS NULL AND body = 'agent comment'`); n != 1 {
+		t.Fatalf("agent comment rows with a null author: %d", n)
+	}
+	if n := e.countRows(`SELECT count(*) FROM documents WHERE id = $1 AND creator_id IS NULL`, doc.ID); n != 1 {
+		t.Fatal("the document is gone or still has a creator")
+	}
+	if n := e.countRows(`SELECT count(*) FROM projects WHERE id = $1 AND lead_id IS NULL`, proj.ID); n != 1 {
+		t.Fatal("project lead not null")
+	}
+	if n := e.countRows(`SELECT count(*) FROM project_updates WHERE author_id IS NULL`); n != 1 {
+		t.Fatal("project update lost or still has an author")
+	}
+	// Activity and inbox rows keep their row; the actor becomes null.
+	if n := e.countRows(`SELECT count(*) FROM issue_activity WHERE issue_id = $1 AND actor_id IS NULL`, made.ID); n == 0 {
+		t.Fatal("issue_activity of the agent's issue is gone or still names the agent")
+	}
+	if n := e.countRows(`SELECT count(*) FROM notifications WHERE dedupe_key = 't47' AND actor_id IS NULL`); n != 1 {
+		t.Fatalf("the notification row of the agent: %d with a null actor, want 1", n)
+	}
+	if n := e.countRows(`SELECT count(*) FROM events WHERE actor_id IS NULL`); n == 0 {
+		t.Fatal("events of the agent were deleted")
+	}
+	if n := e.countRows(`SELECT count(*) FROM events`); n != eventsBefore {
+		t.Fatalf("events %d -> %d: the delete emits none", eventsBefore, n)
+	}
+	// A repeat is 404; the username is free again.
+	e.must(404, e.do("DELETE", agentsPath+"/doomed", e.chen, nil))
+	e.must(201, e.do("POST", agentsPath, e.chen, map[string]any{"username": "doomed", "name": "Again"}))
+}
+
+// TestAgents_DeleteRefusals: a human, an unknown name and another org's agent
+// are 404 and nothing is deleted; an agent in two orgs is 409.
+func TestAgents_DeleteRefusals(t *testing.T) {
+	e := newEnv(t)
+	chen := e.user("chen")
+	acmeID := e.newOrg("acme", "ACM")
+	e.addMember(acmeID, chen.ID, "admin")
+	unpinned, _ := e.newToken(chen.ID, tokenOpts{})
+	var other tracker.Member
+	e.must(201, e.do("POST", "/api/v1/orgs/acme/agents", unpinned, map[string]any{"username": "acme-bot", "name": "A"})).json(t, &other)
+	users := e.countRows(`SELECT count(*) FROM users`)
+
+	e.must(404, e.do("DELETE", agentsPath+"/chen", e.chen, nil)).errCode(t)
+	e.must(404, e.do("DELETE", agentsPath+"/"+chen.ID.String(), e.chen, nil))
+	e.must(404, e.do("DELETE", agentsPath+"/nobody", e.chen, nil))
+	e.must(404, e.do("DELETE", agentsPath+"/acme-bot", e.chen, nil))
+	e.must(404, e.do("DELETE", agentsPath+"/"+other.ID.String(), e.chen, nil))
+	e.must(404, e.do("DELETE", "/api/v1/orgs/acme/agents/claude", unpinned, nil))
+	e.must(404, e.do("DELETE", "/api/v1/orgs/acme/agents/acme-bot", e.chen, nil)) // orbit token, acme path
+	if n := e.countRows(`SELECT count(*) FROM users`); n != users {
+		t.Fatalf("users %d -> %d after refused deletes", users, n)
+	}
+
+	// An agent that belongs to two orgs is not deleted by one of them.
+	e.addMember(e.orgID, other.ID, "member")
+	e.must(409, e.do("DELETE", agentsPath+"/acme-bot", e.chen, nil))
+	if n := e.countRows(`SELECT count(*) FROM users WHERE id = $1`, other.ID); n != 1 {
+		t.Fatal("the shared agent was deleted")
+	}
+}
