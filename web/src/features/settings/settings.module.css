@@ -70,6 +70,12 @@
   align-items: center;
   margin-top: 12px;
 }
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
 @media (max-width: 760px) {
   .pair {
     grid-template-columns: minmax(0, 1fr);

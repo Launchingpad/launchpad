@@ -50,6 +50,9 @@ expect_hit "Stripe live key in a test file" a/x.test.ts "const k = 'sk_""live_ab
 expect_hit "Slack webhook in a test file" a/x_test.go "u := \"https://hooks.""slack.com/services/T0/B0/xyz\""
 expect_hit "URL credential" a/x_test.go "u := \"postgres://admin:hunter2""@db.internal:5432/x\""
 expect_clean "allowed URL credentials" a/x_test.go "u := \"postgres://devops:devops@postgres:5432/x https://u:p@silo http://user:pw@host.example.com/\""
+# The placeholder is split in the source so this file does not hold the pattern itself.
+expect_clean "CapRover placeholder in a DATABASE_URL" a/one-click.yml "DATABASE_URL: postgres://devops:\$\$cap_db_pass""word@srv-captain--\$\$cap_appname-db:5432/devops"
+expect_hit "real password in the same DATABASE_URL shape" a/one-click.yml "DATABASE_URL: postgres://devops:hunter2""@srv-captain--\$\$cap_appname-db:5432/devops"
 expect_hit "name in mixed case (host)" a/n.txt "see Minty""Water here"
 expect_hit "name in upper case" a/n.txt "by WUN""SCH"
 expect_hit "name in a project word" a/n.txt "the Ki""d""Chat app"

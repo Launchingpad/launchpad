@@ -412,6 +412,21 @@ func (s *Server) createAgent(w http.ResponseWriter, r *http.Request) {
 	httpx.WriteJSON(w, http.StatusCreated, m)
 }
 
+// deleteAgent: DELETE /orgs/{org}/agents/{user} (admin scope, decisions-T47).
+// 204; 404 for a human, an unknown user or another org's user. A repeat is a
+// 404 (no Idempotency-Key).
+func (s *Server) deleteAgent(w http.ResponseWriter, r *http.Request) {
+	o, p := ctxOrgPrincipal(r)
+	d, err := s.svc.DeleteAgent(r.Context(), o, chi.URLParam(r, "user"))
+	if err != nil {
+		s.fail(w, r, err)
+		return
+	}
+	s.log.InfoContext(r.Context(), "audit: agent deleted", "org", o.Slug, "actor", p.Username, "via", p.TokenKind,
+		"user_id", d.ID, "username", d.Username)
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) revokeToken(w http.ResponseWriter, r *http.Request) {
 	o, p := ctxOrgPrincipal(r)
 	id, err := pathUUID(r, "token")

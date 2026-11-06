@@ -247,10 +247,10 @@ fi
 
 # Credentials inside a URL (scheme://user:password@host). The allow list below
 # is the complete set of fixture values the tree uses: the compose defaults
-# (devops:devops, the ${POSTGRES_PASSWORD} reference, devops:x), the tests'
+# (devops:devops, the ${POSTGRES_PASSWORD} and CapRover $$cap_db_password references, devops:x), the tests'
 # short fake pairs (user:pw, u:p), the "host spoofing" test input that ends in
 # @evil.example, and the hosts example.com, localhost and 127.0.0.1.
-url_cred_allow='://devops:(devops|x|\$\{POSTGRES_PASSWORD\})@|://(user:pw|u:p)@|://files\.example:9443@evil\.example|@(([a-z0-9.-]+\.)?example\.com|localhost|127\.0\.0\.1)([:/ ]|$)'
+url_cred_allow='://devops:(devops|x|\$\{POSTGRES_PASSWORD\}|[$][$]cap_db_password)@|://(user:pw|u:p)@|://files\.example:9443@evil\.example|@(([a-z0-9.-]+\.)?example\.com|localhost|127\.0\.0\.1)([:/ ]|$)'
 check "credentials inside a URL" '://[^/@ "'"'"'`]+:[^/@ "'"'"'`]+@' '^package-lock' "$url_cred_allow"
 
 # Ticket ids of the private tracker. Shipped migration comments, the decision

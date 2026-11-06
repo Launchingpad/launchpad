@@ -262,6 +262,7 @@ var teamRules = map[string]teamRule{
 	"POST /notifications/read-all":               ownRule("the caller's inbox; the issue join is filtered (#62)", "7").enforced(),
 	"PATCH /notifications/{id}":                  ownRule("the caller's inbox; the issue join is filtered (#62)", "7").enforced(),
 	"POST /agents":                               adminRule(),
+	"DELETE /agents/{user}":                      adminRule(),
 
 	"GET /signups":                   adminRule(),
 	"DELETE /signups/unconfirmed":    adminRule(),

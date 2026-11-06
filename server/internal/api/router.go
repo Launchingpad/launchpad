@@ -498,6 +498,9 @@ func (s *Server) Routes() chi.Router {
 				// idempotent (a retried create is a plain 409, and nothing of
 				// the body is stored in an idempotency row).
 				r.With(admin, idempotency.Reject).Post("/agents", s.createAgent)
+				// Delete an agent (decisions-T47): admin scope, 204, no Idempotency-Key
+				// (a repeat is a 404); a human target is a 404.
+				r.With(admin).Delete("/agents/{user}", s.deleteAgent)
 
 				// Sign-up requests and invites (decisions-T12): org
 				// admins only. Approve and reject are replay-safe by

@@ -178,7 +178,7 @@ launchpad/
 - Local dev: compose with Postgres, silo and the app on ports 8090, 5433 and 9100. No default compose project name. Set `DEV_OPS_PROJECT` in `server/.env` (gitignored), or pass `-p <name>`. See `docs/development.md`.
 - Secrets: `DATABASE_URL`, `PORT`, `LOG_ENV`, `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `PUBLIC_BASE_URL`, `POSTMARK_SERVER_TOKEN`. Optional: `S3_PUBLIC_ENDPOINT` (client-facing endpoint), `S3_REGION`. GitLab webhook secrets live in the DB per org.
 - First run (`docs/internal/decisions-T8-first-run.md`): while no user exists the server logs a one-time setup link; `POST /api/v1/setup` makes the platform admin, the one org, its first team (nine states, Triage first) and the default labels, and returns a session and the first admin token. One instance is one org.
-- Agent users (`docs/internal/decisions-T10-agents.md`): `POST /api/v1/orgs/{org}/agents` makes an agent (no email, so no login code; role `member`), and `server mint-token` (`deploy.sh --mint-token`) mints an org-pinned token on the server by the `POST /tokens` rules.
+- Agent users (`docs/internal/decisions-T10-agents.md`): `POST /api/v1/orgs/{org}/agents` makes an agent (no email, so no login code; role `member`), and `server mint-token` (`deploy.sh --mint-token`) mints an org-pinned token on the server by the `POST /tokens` rules. `DELETE /api/v1/orgs/{org}/agents/{user}` deletes an agent (`docs/internal/decisions-T47-agent-edit-delete.md`).
 
 ## Risks
 

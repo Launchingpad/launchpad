@@ -79,6 +79,7 @@ deploy-test:
 	../deploy/test-offsite.sh
 	../deploy/test-gen-env.sh
 	../deploy/test-move-nginx.sh
+	../deploy/caprover/test-one-click.sh
 	../scripts/test-export.sh
 	../scripts/test-audit.sh
 	../scripts/test-install-mcp.sh
@@ -88,7 +89,7 @@ deploy-test:
 SHELLCHECK_IMAGE ?= koalaman/shellcheck:v0.10.0@sha256:2097951f02e735b613f4a34de20c40f937a6c8f18ecb170612c88c34517221fb
 deploy-lint:
 	docker run --rm -v "$(abspath $(CURDIR)/..)":/mnt -w /mnt $(SHELLCHECK_IMAGE) -x \
-		deploy/deploy.sh deploy/restore.sh deploy/test-restore.sh deploy/test-restore-remote.sh deploy/test-env.sh deploy/test-offsite.sh scripts/install-mcp.sh scripts/test-install-mcp.sh scripts/test-launchpad-plugin.sh plugins/launchpad/scripts/launchpad-mcp plugins/launchpad/lib/install-mcp.sh deploy/check-compose.sh deploy/test-compose-check.sh deploy/example-env.sh deploy/test-gen-env.sh deploy/test-move-nginx.sh deploy/test-compose-stack.sh scripts/gen-env.sh deploy/lib.sh deploy/backup/backup.sh scripts/export-public.sh scripts/audit-public.sh scripts/test-export.sh scripts/test-audit.sh
+		deploy/deploy.sh deploy/restore.sh deploy/test-restore.sh deploy/test-restore-remote.sh deploy/test-env.sh deploy/test-offsite.sh scripts/install-mcp.sh scripts/test-install-mcp.sh scripts/test-launchpad-plugin.sh plugins/launchpad/scripts/launchpad-mcp plugins/launchpad/lib/install-mcp.sh deploy/check-compose.sh deploy/test-compose-check.sh deploy/example-env.sh deploy/test-gen-env.sh deploy/test-move-nginx.sh deploy/test-compose-stack.sh deploy/caprover/gen-one-click.sh deploy/caprover/test-one-click.sh scripts/gen-env.sh deploy/lib.sh deploy/backup/backup.sh scripts/export-public.sh scripts/audit-public.sh scripts/test-export.sh scripts/test-audit.sh
 
 # BASE_URL and TOKEN: see scripts/smoke.sh.
 smoke:

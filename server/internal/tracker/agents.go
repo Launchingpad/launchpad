@@ -124,3 +124,58 @@ func (s *Service) CreateAgent(ctx context.Context, org *auth.Org, in AgentInput)
 	}
 	return out, nil
 }
+
+// DeletedAgent is what DeleteAgent tells the audit line: ids and a name, no
+// secret.
+type DeletedAgent struct {
+	ID       uuid.UUID
+	Username string
+}
+
+// DeleteAgent hard-deletes the agent userRef (an id or a username) of org
+// (decisions-T47). One transaction, under the team access lock (the member
+// row is locked by the lookup). A human, an unknown user and another org's
+// user are all 404, so the route never says whether a human exists. An agent
+// that is also a member of another org is 409 (the route would delete it
+// there too). The foreign keys remove its tokens, membership and per-member
+// rows (CASCADE) and null its authored, assigned and created rows (SET NULL).
+// No event: there is no member event type and the guard cannot be broken by
+// removing a member (#4, #6).
+func (s *Service) DeleteAgent(ctx context.Context, org *auth.Org, userRef string) (DeletedAgent, error) {
+	var out DeletedAgent
+	err := database.InTx(ctx, s.pool, func(tx pgx.Tx) error {
+		q := dbq.New(tx)
+		if err := LockTeamAccessGuard(ctx, q, org.ID); err != nil {
+			return err
+		}
+		ref := memberRef(userRef)
+		ref.OrgID = org.ID
+		m, err := q.GetMemberForAccess(ctx, ref)
+		if err != nil {
+			return notFound(err, "agent")
+		}
+		if !m.IsAgent {
+			return httpx.NotFound("agent")
+		}
+		others, err := q.CountOtherOrgMemberships(ctx, dbq.CountOtherOrgMembershipsParams{OrgID: org.ID, UserID: m.UserID})
+		if err != nil {
+			return fmt.Errorf("count memberships: %w", err)
+		}
+		if others > 0 {
+			return httpx.Errorf(http.StatusConflict, httpx.CodeConflict, "this agent is a member of another org and cannot be deleted here")
+		}
+		n, err := q.DeleteAgentUser(ctx, m.UserID)
+		if err != nil {
+			return fmt.Errorf("delete agent: %w", err)
+		}
+		if n != 1 {
+			return httpx.NotFound("agent")
+		}
+		out = DeletedAgent{ID: m.UserID, Username: m.Username}
+		return nil
+	})
+	if err != nil {
+		return DeletedAgent{}, err
+	}
+	return out, nil
+}
